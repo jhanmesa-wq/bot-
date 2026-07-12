@@ -685,7 +685,7 @@ personal autorizado.
 # ----------------------
 async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔙 Volver", callback_data="menu_consultas")]
+        [InlineKeyboardButton("🔙 Volver", callback_data="volver_cmds")]
     ])
 
     # ✅ Verifica que el mensaje exista y tenga foto
@@ -807,20 +807,104 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """,
             reply_markup=keyboard
         )
+async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
 
-# ----------------------
-# ✅ REGISTRO OBLIGATORIO DE MANEJADORES
-# ----------------------
-# Para cuando escribe solo /facial
-application.add_handler(CommandHandler("facial", facial))
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
 
-# ✅ PARA CUANDO ENVÍA FOTO + /facial EN LA DESCRIPCIÓN (ESTE ES EL QUE FALTABA)
-application.add_handler(
-    MessageHandler(
-        filters.PHOTO & filters.CaptionRegex(r"^/facial$"),
-        facial
-    )
-)
+    ok, msg = await validar_creditos(user_id, "telpcel", usuarios)
+    if not ok:
+        return await update.message.reply_text(msg)
+
+    if not context.args:
+        return await update.message.reply_text(
+            "❌ <b>Uso correcto:</b>\n<code>/telpcel 900000001</code>",
+            parse_mode="HTML"
+        )
+
+    numero = context.args[0]
+
+    if not (numero.isdigit() and len(numero) == 9):
+        return await update.message.reply_text(
+            "❌ El número debe contener exactamente 9 dígitos."
+        )
+
+    try:
+        data = await consultar_api(
+            f"https://api-codart.cgrt.org/api/v1/consultas/fd/telp/cel/{numero}"
+        )
+
+        if not data.get("success"):
+            return await update.message.reply_text(
+                "❌ No se encontraron resultados."
+            )
+
+        titulares = data["data"]["titulares"]
+
+        texto = """╔═════════════════════╗
+📡 <b>TELP CEL • SISTEMA</b>
+╚═════════════════════╝
+
+🟢 <b>ESTADO DEL SISTEMA</b>
+➜ ONLINE
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+"""
+
+        for t in titulares:
+            texto += f"""
+👤 <b>TITULAR</b>
+➜ <code>{t.get('titular','-')}</code>
+
+📱 <b>TELÉFONO</b>
+➜ <code>{t.get('telefono','-')}</code>
+
+🏢 <b>OPERADOR</b>
+➜ <code>{t.get('operador','-')}</code>
+
+🪪 <b>DNI / RUC</b>
+➜ <code>{t.get('dni_ruc','-')}</code>
+
+💳 <b>PLAN</b>
+➜ <code>{t.get('plan','-')}</code>
+
+📧 <b>CORREO</b>
+➜ <code>{t.get('correo','-')}</code>
+
+🏛️ <b>EMPRESA</b>
+➜ <code>{t.get('empresa','-')}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+"""
+
+        texto += """
+🚀 <b>Consulta completada correctamente</b>
+
+⚜️ <b>SISTEMAS DATA PERU</b>
+📡 Powered by CODART X API V1
+"""
+
+        botones = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton(
+                    "VOLVER AL MENU",
+                    callback_data="volver_cmds"
+                )
+            ]
+        ])
+
+        await update.message.reply_text(
+            texto,
+            parse_mode="HTML",
+            reply_markup=botones
+        )
+
+    except Exception as e:
+        await update.message.reply_text(
+            f"❌ <b>Error:</b>\n<code>{e}</code>",
+            parse_mode="HTML"
+        )
 async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
