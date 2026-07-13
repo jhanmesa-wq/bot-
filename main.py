@@ -942,7 +942,7 @@ async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     d = res.get("dni", {}); n = res.get("nacimiento", {}); dom = res.get("domicilio", {}); info = res.get("informacion_general", {})
     images = res.get("images", [])
     usuarios[user_id]["creditos"] -= PRECIOS["dnit"]
-    usuarios[user_id] = {"consultas": 0}
+    usuarios[user_id] = {"consultas" : usuarios[user_id].get("consultas", 0) + 1, "creditos": usuarios[user_id].get("creditos", 0)}
     guardar_usuarios(usuarios)
     texto = f"""[#BOT DATA] ➾ DNI-T
 [🆔] DNI ➾ {d.get('completo')}
