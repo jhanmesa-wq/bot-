@@ -13,7 +13,6 @@ from threading import Thread
 import asyncio
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
 
-
 BTN_VOLVER = InlineKeyboardMarkup([
     [InlineKeyboardButton("🏠 Volver al inicio", callback_data="menu_inicio")]
 ])
@@ -45,12 +44,12 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = [str(os.getenv("ADMIN_ID"))] # Lista para poder agregar varios admins
 ARCHIVO_USUARIOS = os.getenv("ARCHIVO_USUARIOS") or "usuarios.json"
-BOT_USER = "@OFICIAL_DATA_BOT"
+BOT_USER = "@SpecterDox44_bot"
 BOT_NAME = "⚜ DATA_PERU⚜"
 BASE_URL = "https://api-codart.cgrt.org"
 
 PRECIOS = {
-    "dni": 4, "agv": 8, "telpcel": 15, "ruc": 5, "suel": 5,
+    "dni": 4, "agv": 8, "telpcel": 15, "facial": 30, "ruc": 5, "suel": 5,
     "denuncia": 10, "placa": 12, "nm": 6, "hsoat": 8, "denpla": 30, "dnit": 5, "telp": 15
 }
 
@@ -683,14 +682,16 @@ personal autorizado.
 # ----------------------
 # FUNCIÓN CORREGIDA
 # ----------------------
+
 async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔙 Volver", callback_data="volver_cmds")]
     ])
 
-    # ✅ Verifica que el mensaje exista y tenga foto
-    if not update.message or not update.message.photo:
-        await update.message.reply_text(
+    # 1. ARREGLO: Acepta foto con caption O foto sola
+    message = update.message
+    if not message or not message.photo:
+        await message.reply_text(
             """
 ╔═════════════════╗
       🧬 COMANDO FACIAL
@@ -699,9 +700,8 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ❌ No se recibió ninguna imagen.
 
 📌 Uso correcto:
-
-📷 Adjunta una imagen y escribe
-/facial como descripción.
+📷 Envía la foto y pon /facial 
+   en la descripción de la foto.
 
 ━━━━━━━━━━━━━━━━━━━
 ⚡ SISTEMA FACIAL ONLINE
@@ -711,7 +711,7 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        await update.message.reply_text(
+        await message.reply_text(
             """
 ╔═════════════════╗
     🧬 ESCÁNER FACIAL
@@ -726,18 +726,20 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=keyboard
         )
 
-        # ✅ Obtiene la foto en máxima calidad
-        photo = update.message.photo[-1]
+        # 2. ARREGLO: Descargar bien y con nombre correcto
+        photo = message.photo[-1] # máxima calidad
         file = await context.bot.get_file(photo.file_id)
-        imagen = await file.download_as_bytearray()
+        imagen_bytes = await file.download_as_bytearray()
 
         headers = {
             "Authorization": f"Bearer {API_TOKEN}",
             "Accept": "application/json"
         }
 
+        # 3. ARREGLO: El nombre del campo debe coincidir con la API
+        # Muchas APIs piden "image" o "file", no "image_facial"
         files = {
-            "image_facial": ("imagen.jpg", bytes(imagen), "image/jpeg")
+            "image": ("imagen.jpg", bytes(imagen_bytes), "image/jpeg") 
         }
 
         async with httpx.AsyncClient(timeout=60) as client:
@@ -746,11 +748,16 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 headers=headers,
                 files=files
             )
-            response.raise_for_status() # ✅ Detecta errores de conexión
+            
+            # Para debug: si falla, muestra el error real de la API
+            if response.status_code != 200:
+                await message.reply_text(f"Error API: {response.status_code}\n{response.text}")
+                return
+                
             data = response.json()
 
         if not data.get("success"):
-            await update.message.reply_text(
+            await message.reply_text(
                 """
 ╔═══════════════╗
      🧬 RESULTADO FACIAL
@@ -763,7 +770,6 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         info = data["data"]
-
         texto = f"""
 ╔═════════════════╗
      🧬 RESULTADO FACIAL
@@ -771,42 +777,30 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 ✅ Análisis completado
 
-🔎 Tipo: {info['tipo_resultado']}
-👥 Coincidencias: {info['coincidencias_mostradas']}
+🔎 Tipo: {info.get('tipo_resultado','N/A')}
+👥 Coincidencias: {info.get('coincidencias_mostradas',0)}
 
 ━━━━━━━━━━━━━━━━━━━
 """
 
-        for i, p in enumerate(info["coincidencias"], 1):
+        for i, p in enumerate(info.get("coincidencias", []), 1):
             texto += f"""
 👤 COINCIDENCIA #{i}
 
-🪪 DNI: <code>{p['dni']}</code>
-📛 Nombre: {p['nombre']}
-🎯 Similitud: {p['porcentaje']}%
+🪪 DNI: <code>{p.get('dni','N/A')}</code>
+📛 Nombre: {p.get('nombre','N/A')}
+🎯 Similitud: {p.get('porcentaje','0')}%
 
 ━━━━━━━━━━━━━━━━━━━
 """
 
         texto += "\n⚡ CYBER DATA PERÚ"
+        await message.reply_text(texto, parse_mode="HTML", reply_markup=keyboard)
 
-        await update.message.reply_text(
-            texto,
-            parse_mode="HTML",
-            reply_markup=keyboard
-        )
-
+    except httpx.RequestError as e:
+        await message.reply_text(f"⚠️ Error de conexión: {e}", reply_markup=keyboard)
     except Exception as e:
-        await update.message.reply_text(
-            f"""
-╔════════════════╗
-               ⚠️ ERROR
-╚════════════════╝
-
-{e}
-""",
-            reply_markup=keyboard
-        )
+        await message.reply_text(f"⚠️ Error: {e}", reply_markup=keyboard)
 async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
@@ -831,7 +825,7 @@ async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     try:
-        data = await consultar_api(
+        data = await consultar_api_get (
             f"https://api-codart.cgrt.org/api/v1/consultas/fd/telp/cel/{numero}"
         )
 
@@ -1134,6 +1128,7 @@ def main():
     application.add_handler(CommandHandler("den", den))
     application.add_handler(CommandHandler("telpcel", telpcel))
     application.add_handler(CommandHandler("facial", facial))
+    application.add_handler(MessageHandler(filters.PHOTO & filters.COMMAND, facial)) #
     application.add_handler(CommandHandler("denuncias", denuncias))
     # agrega los demas handlers aqui
     print("Bot iniciado v2.1...")
