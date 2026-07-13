@@ -679,67 +679,77 @@ personal autorizado.
 [💰] SALDO ACTUAL ➾ {usuarios[target_id]['creditos']}"""
     await update.message.reply_text(texto)
 
-# ----------------------
-# FUNCIÓN CORREGIDA
-# ----------------------
-
 async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+
+    ok, msg = await validar_creditos(user_id, "facial", usuarios)
+    if not ok:
+        return await update.message.reply_text(msg)
+
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔙 Volver", callback_data="volver_cmds")]
+        [InlineKeyboardButton("🏠 Volver al menú", callback_data="volver_cmds")]
     ])
 
-    # 1. ARREGLO: Acepta foto con caption O foto sola
     message = update.message
+
     if not message or not message.photo:
-        await message.reply_text(
+        return await message.reply_text(
             """
-╔═════════════════╗
-      🧬 COMANDO FACIAL
-╚═════════════════╝
+╔════════════════════════╗
+        🧬 SISTEMA FACIAL
+╚════════════════════════╝
 
-❌ No se recibió ninguna imagen.
+📷 Envía una fotografía y escribe
 
-📌 Uso correcto:
-📷 Envía la foto y pon /facial 
-   en la descripción de la foto.
+<code>/facial</code>
 
-━━━━━━━━━━━━━━━━━━━
-⚡ SISTEMA FACIAL ONLINE
+como descripción de la imagen.
+
+━━━━━━━━━━━━━━━━━━━━
+⚜️ DATA PERÚ
 """,
+            parse_mode="HTML",
             reply_markup=keyboard
         )
-        return
 
     try:
+
         await message.reply_text(
             """
-╔═════════════════╗
-    🧬 ESCÁNER FACIAL
-╚═════════════════╝
+╔════════════════════════╗
+      🧬 ESCÁNER FACIAL
+╚════════════════════════╝
 
-🔄 Procesando imagen...
-🛰 Conectando al sistema...
-⚙️ Analizando coincidencias...
+🛰️ Conectando al servidor...
 
-━━━━━━━━━━━━━━━━━━━
+📷 Procesando imagen...
+🔎 Analizando rostro...
+⚙️ Buscando coincidencias...
+
+━━━━━━━━━━━━━━━━━━━━
 """,
             reply_markup=keyboard
         )
 
-        # 2. ARREGLO: Descargar bien y con nombre correcto
-        photo = message.photo[-1] # máxima calidad
-        file = await context.bot.get_file(photo.file_id)
-        imagen_bytes = await file.download_as_bytearray()
+        photo = message.photo[-1]
+
+        tg_file = await context.bot.get_file(photo.file_id)
+        imagen = await tg_file.download_as_bytearray()
 
         headers = {
             "Authorization": f"Bearer {API_TOKEN}",
             "Accept": "application/json"
         }
 
-        # 3. ARREGLO: El nombre del campo debe coincidir con la API
-        # Muchas APIs piden "image" o "file", no "image_facial"
         files = {
-            "image": ("imagen.jpg", bytes(imagen_bytes), "image/jpeg") 
+            "image_facial": (
+                "imagen.jpg",
+                bytes(imagen),
+                "image/jpeg"
+            )
         }
 
         async with httpx.AsyncClient(timeout=60) as client:
@@ -748,59 +758,94 @@ async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 headers=headers,
                 files=files
             )
-            
-            # Para debug: si falla, muestra el error real de la API
-            if response.status_code != 200:
-                await message.reply_text(f"Error API: {response.status_code}\n{response.text}")
-                return
-                
-            data = response.json()
+
+        if response.status_code != 200:
+            return await message.reply_text(
+                f"❌ Error API {response.status_code}\n\n<code>{response.text}</code>",
+                parse_mode="HTML"
+            )
+
+        data = response.json()
 
         if not data.get("success"):
-            await message.reply_text(
+            return await message.reply_text(
                 """
-╔═══════════════╗
-     🧬 RESULTADO FACIAL
-╚═══════════════╝
+╔════════════════════════╗
+      🧬 RESULTADO
+╚════════════════════════╝
 
 ❌ No se encontraron coincidencias.
+
+━━━━━━━━━━━━━━━━━━━━
 """,
                 reply_markup=keyboard
             )
-            return
 
         info = data["data"]
+
+        usuarios[user_id]["creditos"] -= PRECIOS["facial"]
+        usuarios[user_id]["consultas"] += 1
+        guardar_usuarios(usuarios)
+
         texto = f"""
-╔═════════════════╗
-     🧬 RESULTADO FACIAL
-╚═════════════════╝
+╔════════════════════════╗
+      🧬 RESULTADO FACIAL
+╚════════════════════════╝
 
-✅ Análisis completado
+✅ Consulta completada
 
-🔎 Tipo: {info.get('tipo_resultado','N/A')}
-👥 Coincidencias: {info.get('coincidencias_mostradas',0)}
+🔎 Tipo:
+<code>{info.get("tipo_resultado")}</code>
 
-━━━━━━━━━━━━━━━━━━━
+👥 Coincidencias:
+<code>{info.get("coincidencias_mostradas")}</code>
+
+━━━━━━━━━━━━━━━━━━━━
 """
 
-        for i, p in enumerate(info.get("coincidencias", []), 1):
+        for i, persona in enumerate(info.get("coincidencias", []), 1):
             texto += f"""
-👤 COINCIDENCIA #{i}
+👤 <b>COINCIDENCIA #{i}</b>
 
-🪪 DNI: <code>{p.get('dni','N/A')}</code>
-📛 Nombre: {p.get('nombre','N/A')}
-🎯 Similitud: {p.get('porcentaje','0')}%
+🪪 DNI
+<code>{persona.get("dni")}</code>
 
-━━━━━━━━━━━━━━━━━━━
+📛 Nombre
+<code>{persona.get("nombre")}</code>
+
+🎯 Similitud
+<code>{persona.get("porcentaje")}%</code>
+
+━━━━━━━━━━━━━━━━━━━━
 """
 
-        texto += "\n⚡ CYBER DATA PERÚ"
-        await message.reply_text(texto, parse_mode="HTML", reply_markup=keyboard)
+        texto += f"""
+💳 Créditos restantes:
+<code>{usuarios[user_id]["creditos"]}</code>
+
+⚜️ DATA PERÚ
+📡 Powered by CODART X API
+"""
+
+        await message.reply_text(
+            texto,
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
 
     except httpx.RequestError as e:
-        await message.reply_text(f"⚠️ Error de conexión: {e}", reply_markup=keyboard)
+        await message.reply_text(
+            f"⚠️ Error de conexión\n\n<code>{e}</code>",
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
     except Exception as e:
-        await message.reply_text(f"⚠️ Error: {e}", reply_markup=keyboard)
+        await message.reply_text(
+            f"⚠️ Error inesperado\n\n<code>{e}</code>",
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
 async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
@@ -942,8 +987,8 @@ async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     d = res.get("dni", {}); n = res.get("nacimiento", {}); dom = res.get("domicilio", {}); info = res.get("informacion_general", {})
     images = res.get("images", [])
     usuarios[user_id]["creditos"] -= PRECIOS["dnit"]
-    usuarios[user_id] = {"consultas" : usuarios[user_id].get("consultas", 0) + 1, "creditos": usuarios[user_id].get("creditos", 0)}
-    guardar_usuarios(usuarios)
+    usuarios[user_id]["consultas"] += 1
+     guardar_usuarios(usuarios) guardar_usuarios(usuarios)
     texto = f"""[#BOT DATA] ➾ DNI-T
 [🆔] DNI ➾ {d.get('completo')}
 [👤] NOMBRE ➾ {res.get('nombres')} {res.get('apellidos')}
@@ -1128,7 +1173,9 @@ def main():
     application.add_handler(CommandHandler("den", den))
     application.add_handler(CommandHandler("telpcel", telpcel))
     application.add_handler(CommandHandler("facial", facial))
-    application.add_handler(MessageHandler(filters.PHOTO & filters.COMMAND, facial)) #
+    application.add_handler(
+    MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/facial"), facial)
+)
     application.add_handler(CommandHandler("denuncias", denuncias))
     # agrega los demas handlers aqui
     print("Bot iniciado v2.1...")
