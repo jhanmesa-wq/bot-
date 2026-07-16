@@ -11,6 +11,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Callb
 from flask import Flask
 from threading import Thread
 import asyncio
+from telegram import InputMediaVideo, InlineKeyboardMarkup, InlineKeyboardButton, Update 
+from telegram.ext import ContextTypes
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
 
 BTN_VOLVER = InlineKeyboardMarkup([
@@ -227,7 +229,7 @@ solo lugar.
 
 ━━━━━━━━━━━━━━━
 
-👇 𝗦𝗘𝗟𝗘𝗖𝗖𝗜𝗢𝗡𝗔 𝗨𝗡𝗔 𝗖𝗔𝗧𝗘𝗚𝗢𝗥Í𝗔 👇"""
+👇 𝗦𝗘𝗟𝗘𝗖𝗜𝗢𝗡𝗔 𝗨𝗡𝗔 𝗖𝗔𝗧𝗘𝗚𝗢𝗥Í𝗔 👇"""
 
     await context.bot.send_video(
         chat_id=update.effective_chat.id,
@@ -236,29 +238,30 @@ solo lugar.
         reply_markup=teclado,
         parse_mode='HTML'
     )
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Botón volver
-    if query.data == "volver_cmds":
+    # Botón volver - ARREGLADO INDENTACIÓN Y edit_message_caption para videos
+    if query.data == "volver_cmds" or query.data == "menu_inicio":
         teclado = InlineKeyboardMarkup([
             [
-    InlineKeyboardButton("╔═ 🪪 RENIEC ═╗", callback_data="cmd_reniec"),
-    InlineKeyboardButton("╔═ 🏢 RUC ═╗", callback_data="cmd_ruc")
-],
-[
-    InlineKeyboardButton("╔═ 🚘 VEHÍCULOS ═╗", callback_data="cmd_vehiculos"),
-    InlineKeyboardButton("╔═ 📱 TELÉFONO ═╗", callback_data="cmd_telefono")
-],
-[
-    InlineKeyboardButton("╔═ ⚖️ DENUNCIAS ═╗", callback_data="cmd_denuncia"),
-    InlineKeyboardButton("╔═ 💰 SUELDO ═╗", callback_data="cmd_sueldo")
-],
-[
-    InlineKeyboardButton("╔═ 🧬 FACIAL ═╗", callback_data="cmd_facial"),
-    InlineKeyboardButton("╔═ 💎 COMPRAR ═╗", callback_data="cmd_buy")
-]
+                InlineKeyboardButton("╔═ 🪪 RENIEC ═╗", callback_data="cmd_reniec"),
+                InlineKeyboardButton("╔═ 🏢 RUC ═╗", callback_data="cmd_ruc")
+            ],
+            [
+                InlineKeyboardButton("╔═ 🚘 VEHÍCULOS ═╗", callback_data="cmd_vehiculos"),
+                InlineKeyboardButton("╔═ 📱 TELÉFONO ═╗", callback_data="cmd_telefono")
+            ],
+            [
+                InlineKeyboardButton("╔═ ⚖️ DENUNCIAS ═╗", callback_data="cmd_denuncia"),
+                InlineKeyboardButton("╔═ 💰 SUELDO ═╗", callback_data="cmd_sueldo")
+            ],
+            [
+                InlineKeyboardButton("╔═ 🧬 FACIAL ═╗", callback_data="cmd_facial"),
+                InlineKeyboardButton("╔═ 💎 COMPRAR ═╗", callback_data="cmd_buy")
+            ]
         ])
 
         texto = f"""╔══════════════════════╗
@@ -270,7 +273,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 🛰️ 𝗔𝗖𝗖𝗘𝗗𝗘 𝗔 𝗧𝗢𝗗𝗢𝗦 𝗟𝗢𝗦 𝗦𝗘𝗥𝗩𝗜𝗖𝗜𝗢𝗦
-
 💎 Más de 150 servicios disponibles
 ⚡ Consultas rápidas y precisas
 🛡️ Plataforma segura y estable
@@ -288,11 +290,11 @@ solo lugar.
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 👇 𝗦𝗘𝗟𝗘𝗖𝗖𝗜𝗢𝗡𝗔 𝗨𝗡𝗔 𝗖𝗔𝗧𝗘𝗚𝗢𝗥Í𝗔 👇"""
-
-        await query.edit_message_text(
-            texto,
-            reply_markup=teclado
-        )
+        # FIX: si el mensaje original es VIDEO, hay que editar caption, no texto
+        try:
+            await query.edit_message_caption(caption=texto, reply_markup=teclado)
+        except:
+            await query.edit_message_text(texto, reply_markup=teclado)
         return
 
     comandos = {
@@ -304,19 +306,19 @@ solo lugar.
 1. DNI TARJETA
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /dnit 44445555
-• ᴘʀᴇᴄɪᴏ ➾ 5 ᴄʀᴇ́ᴅɪᴛᴏs
+• ᴘʀᴇᴄɪᴏ ➾ 5 ᴄʀᴇ‌ᴅɪᴛᴏs
 • ʀᴇsᴜʟᴛᴀᴅᴏ ➾ texto con foto y firma
 
 2. DNI POR NOMBRES
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /nm juan quispe
-• ᴘʀᴇᴄɪᴏ ➾ 6 ᴄʀᴇ́ᴅɪᴛᴏs
+• ᴘʀᴇᴄɪᴏ ➾ 6 ᴄʀᴇ‌ᴅɪᴛᴏs
 • ʀᴇsᴜʟᴛᴀᴅᴏ ➾ dni por nombre y apellido
 
 3. DNI SIMPLE
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /dni 44445555
-• ᴘʀᴇᴄɪᴏ ➾ 4 ᴄʀᴇ́ᴅɪᴛᴏs
+• ᴘʀᴇᴄɪᴏ ➾ 4 ᴄʀᴇ‌ᴅɪᴛᴏs
 
 Página: 1/1""",
 
@@ -350,34 +352,31 @@ Página: 1/1""",
         "cmd_denuncia": f"""❰ #𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦_𝗗𝗔𝗧𝗔_𝗣𝗘𝗥𝗨   ❱ ➾ DENUNCIA
 ✦ ──────────────── ✦
 ᴄᴏᴍᴀɴᴅᴏs ᴅɪsᴘᴏɴɪʙʟᴇs ➾ 2
-ᴘᴀ́ɢɪɴᴀ ➾ 1/1
+ᴘᴀ‌ɢɪɴᴀ ➾ 1/1
 
 1. DENUNCIAS EN PDF
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /denuncias 44445555
-• ᴘʀᴇᴄɪᴏ ➾ 30 ᴄʀᴇ́ᴅɪᴛᴏs
+• ᴘʀᴇᴄɪᴏ ➾ 30 ᴄʀᴇ‌ᴅɪᴛᴏs
 • ʀᴇsᴜʟᴛᴀᴅᴏ ➾ Lista de denuncias en PDF
 
 2. DENUNCIAS POR DNI
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /den 12345678
-• ᴘʀᴇᴄɪᴏ ➾ 15 ᴄʀᴇ́ᴅɪᴛᴏs
+• ᴘʀᴇᴄɪᴏ ➾ 15 ᴄʀᴇ‌ᴅɪᴛᴏs
 • ʀᴇsᴜʟᴛᴀᴅᴏ ➾ Consulta denuncias asociadas a un DNI.
-
-
-
 
 Página: 1/1""",
 
         "cmd_sueldo": f"""❰ #𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦_𝗗𝗔𝗧𝗔_𝗣𝗘𝗥𝗨 ❱ ➾ SUELDOS
 ✦ ──────────────── ✦
 ᴄᴏᴍᴀɴᴅᴏs ᴅɪsᴘᴏɴɪʙʟᴇs ➾ 1
-ᴘᴀ́ɢɪɴᴀ ➾ 1/1
+ᴘᴀ‌ɢɪɴᴀ ➾ 1/1
 
 1. CONSULTA DE SUELDOS
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /suel 12345678
-• ᴘʀᴇᴄɪᴏ ➾ 4 ᴄʀᴇ́ᴅɪᴛᴏs
+• ᴘʀᴇᴄɪᴏ ➾ 4 ᴄʀᴇ‌ᴅɪᴛᴏs
 • ʀᴇsᴜʟᴛᴀᴅᴏ ➾ Información de sueldos registrados
 
 Página: 1/1""",
@@ -421,26 +420,24 @@ tu cuenta, comunícate con:
 ✦ Soporte personalizado
 
 ╰━━━━━━━━━━━━━━━━━━━━━━╯""" 
-}
-
+    }
 
     if query.data in comandos:
         volver = InlineKeyboardMarkup([
             [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="volver_cmds")]
         ])
-        await query.edit_message_text(
-            comandos[query.data],
-            reply_markup=volver
-        )
-
+        try:
+            await query.edit_message_caption(caption=comandos[query.data], reply_markup=volver)
+        except:
+            await query.edit_message_text(comandos[query.data], reply_markup=volver)
 
     elif query.data == "cmd_facial":
-        await query.edit_message_text("""❰ #𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦_𝗗𝗔𝗧𝗔_𝗣𝗘𝗥𝗨 ❱ ➾ FACIAL
+        volver = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Volver al inicio", callback_data="volver_cmds")]])
+        texto_facial = """❰ #𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦_𝗗𝗔𝗧𝗔_𝗣𝗘𝗥𝗨 ❱ ➾ FACIAL
 ✦ ──────────────── ✦
 
 ᴄᴏᴍᴀɴᴅᴏs ᴅɪsᴘᴏɴɪʙʟᴇs ➾ 1
 ᴘᴀ‌ɢɪɴᴀ ➾ 1/1
-
 1. RECONOCIMIENTO FACIAL
 • ᴇsᴛᴀᴅᴏ ➾ OPERATIVO [✅]
 • ᴄᴏᴍᴀɴᴅᴏ ➾ /facial
@@ -449,11 +446,18 @@ tu cuenta, comunícate con:
 
 ✦ ──────────────── ✦
 
-Página: 1/1""")
+Página: 1/1"""
+        try:
+            await query.edit_message_caption(caption=texto_facial, reply_markup=volver)
+        except:
+            await query.edit_message_text(texto_facial, reply_markup=volver)
 
     elif query.data == "cmd_buy":
-        await query.edit_message_text(comandos["cmd_buy"])
-
+        volver = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Volver al inicio", callback_data="volver_cmds")]])
+        try:
+            await query.edit_message_caption(caption=comandos["cmd_buy"], reply_markup=volver)
+        except:
+            await query.edit_message_text(comandos["cmd_buy"], reply_markup=volver)
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios()
