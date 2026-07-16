@@ -178,31 +178,30 @@ Gracias por utilizar <b>DATA PERÚ</b>.
         caption=texto,
         parse_mode='HTML'
     )
-    await update.message.reply_text(
-        texto,
-        parse_mode="HTML"
-    )
+
 async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    VIDEO_CMD = "https://files.catbox.moe/m7e3jl.mp4"
+    
     teclado = InlineKeyboardMarkup([
         [
-    InlineKeyboardButton("╔═ 🪪 RENIEC ═╗", callback_data="cmd_reniec"),
-    InlineKeyboardButton("╔═ 🏢 RUC ═╗", callback_data="cmd_ruc")
-],
-[
-    InlineKeyboardButton("╔═ 🚘 VEHÍCULOS ═╗", callback_data="cmd_vehiculos"),
-    InlineKeyboardButton("╔═ 📱 TELÉFONO ═╗", callback_data="cmd_telefono")
-],
-[
-    InlineKeyboardButton("╔═ ⚖️ DENUNCIAS ═╗", callback_data="cmd_denuncia"),
-    InlineKeyboardButton("╔═ 💰 SUELDO ═╗", callback_data="cmd_sueldo")
-],
-[
-    InlineKeyboardButton("╔═ 🧬 FACIAL ═╗", callback_data="cmd_facial"),
-    InlineKeyboardButton("╔═ 💎 COMPRAR ═╗", callback_data="cmd_buy")
-]
+            InlineKeyboardButton("╔═ 🪪 RENIEC ═╗", callback_data="cmd_reniec"),
+            InlineKeyboardButton("╔═ 🏢 RUC ═╗", callback_data="cmd_ruc")
+        ],
+        [
+            InlineKeyboardButton("╔═ 🚘 VEHÍCULOS ═╗", callback_data="cmd_vehiculos"),
+            InlineKeyboardButton("╔═ 📱 TELÉFONO ═╗", callback_data="cmd_telefono")
+        ],
+        [
+            InlineKeyboardButton("╔═ ⚖️ DENUNCIAS ═╗", callback_data="cmd_denuncia"),
+            InlineKeyboardButton("╔═ 💰 SUELDO ═╗", callback_data="cmd_sueldo")
+        ],
+        [
+            InlineKeyboardButton("╔═ 🧬 FACIAL ═╗", callback_data="cmd_facial"),
+            InlineKeyboardButton("╔═ 💎 COMPRAR ═╗", callback_data="cmd_buy")
+        ]
     ])
 
-    texto = f"""╔════════════════════╗
+    texto = f"""╔════════════╗
         ⚜️ 𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦 𝗣𝗘𝗥𝗨 ⚜️
 ╚════════════════════╝
 
@@ -219,20 +218,24 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📡 Actualizaciones constantes
 🎯 Respuesta en pocos segundos
 
-━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 
 🔎 𝗖𝗢𝗡𝗘𝗖𝗧𝗔 𝗟𝗔 𝗜𝗡𝗙𝗢𝗥𝗠𝗔𝗖𝗜Ó𝗡
 📂 Descubre relaciones y encuentra
 los datos que necesitas desde un
 solo lugar.
 
-━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 
 👇 𝗦𝗘𝗟𝗘𝗖𝗖𝗜𝗢𝗡𝗔 𝗨𝗡𝗔 𝗖𝗔𝗧𝗘𝗚𝗢𝗥Í𝗔 👇"""
 
-    await update.message.reply_text(texto, reply_markup=teclado)
-
-
+    await context.bot.send_video(
+        chat_id=update.effective_chat.id,
+        video=VIDEO_CMD,
+        caption=texto,
+        reply_markup=teclado,
+        parse_mode='HTML'
+    )
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -460,18 +463,26 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Registro exitoso! Bienvenido {update.effective_user.first_name}")
 
 async def me(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    VIDEO_PERFIL = "https://files.catbox.moe/jwtbu0.mp4"
+    
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios()
     usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
     u = usuarios.get(user_id, {})
+    
     texto = f"""[#BOT DATA] ➾ PERFIL DE USUARIO
 PERFIL DE ➾ {u.get("nombre", "Usuario")}
 [🙎‍♂️] ID ➾ {user_id}
 [👨🏻‍💻] USER ➾ @{u.get("username", "")}
 [💰] CREDITOS ➾ {u.get('creditos', 0)}
 [📊] CONSULTAS ➾ {u.get('consultas', 0)}"""
-    await update.message.reply_text(texto)
-
+    
+    await context.bot.send_video(
+        chat_id=update.effective_chat.id,
+        video=VIDEO_PERFIL,
+        caption=texto,
+        parse_mode='HTML'
+    )
 
 
 async def denuncias(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -954,53 +965,43 @@ async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-
     usuarios = cargar_usuarios()
     usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
 
-    ok, msg = await validar_creditos(user_id, "telp", usuarios)
+    ok, res_cred = await validar_creditos(user_id, "telp", usuarios)
     if not ok:
-        return await update.message.reply_text(msg)
+        return await update.message.reply_text(res_cred)
 
     if not context.args:
-        return await update.message.reply_text(
-            "❌ <b>Uso correcto:</b>\n<code>/telp 12345678</code>",
-            parse_mode="HTML"
-        )
+        return await update.message.reply_text("❌ <b>Uso:</b> <code>/telp 12345678</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
 
     dni = context.args[0]
-
     if not (dni.isdigit() and len(dni) == 8):
-        return await update.message.reply_text(
-            "❌ El DNI debe contener exactamente 8 dígitos."
-        )
+        return await update.message.reply_text("❌ El DNI debe contener exactamente 8 dígitos.", parse_mode="HTML", reply_markup=BTN_VOLVER)
+
+    m = await update.message.reply_text(f"📡 Consultando líneas de <code>{dni}</code>...", parse_mode="HTML")
+    url = f"{BASE_URL}/api/v1/consultas/fd/telp/{dni}"
 
     try:
-        data = await consultar_api_get(
-            f"https://api-codart.cgrt.org/api/v1/consultas/fd/telp/{dni}"
-        )
+        data = await asyncio.wait_for(consultar_api_get(url), timeout=10)
+    except asyncio.TimeoutError:
+        return await m.edit_text("❌ <b>Timeout:</b> La API tardó más de 10s.", parse_mode="HTML", reply_markup=BTN_VOLVER)
+    except Exception as e:
+        return await m.edit_text(f"❌ <b>Error:</b>\n<code>{e}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-        if "error" in data:
-            return await update.message.reply_text(
-                f"❌ <b>Error:</b>\n<code>{data['error']}</code>",
-                parse_mode="HTML"
-            )
+    if "error" in data:
+        return await m.edit_text(f"❌ <b>Error API:</b>\n<code>{data['error']}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
+    if not data.get("success"):
+        return await m.edit_text("❌ No se encontraron líneas telefónicas.", parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-        if not data.get("success"):
-            return await update.message.reply_text(
-                "❌ No se encontraron líneas telefónicas.",
-                parse_mode="HTML"
-            )
+    usuarios[user_id]["creditos"] -= PRECIOS["telp"]
+    usuarios[user_id]["consultas"] += 1
+    guardar_usuarios(usuarios)
 
-        usuarios[user_id]["creditos"] -= PRECIOS["telp"]
-        usuarios[user_id]["consultas"] += 1
-        guardar_usuarios(usuarios)
+    resultado = data["data"]
+    lineas = resultado.get("lineas", [])
 
-        resultado = data["data"]
-        cantidad = resultado.get("lineas_encontradas", 0)
-        lineas = resultado.get("lineas", [])
-
-        texto = f"""╔═════════════════════╗
+    texto = f"""╔═════════════════════╗
 📡 <b>TELP • SISTEMA</b>
 ╚═════════════════════╝
 
@@ -1011,94 +1012,66 @@ async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ➜ <code>{dni}</code>
 
 📞 <b>LÍNEAS ENCONTRADAS</b>
-➜ <code>{cantidad}</code>
+➜ <code>{resultado.get('lineas_encontradas', len(lineas))}</code>
 
 ⚡━━━━━━━━━━━━━━━━━━━━━━⚡
 """
-
-        for i, linea in enumerate(lineas, 1):
-
-            periodo = linea.get("periodo", "-")
-            if len(periodo) == 6:
-                periodo = f"{periodo[4:]}/{periodo[:4]}"
-
-            texto += f"""
-📱 <b>LÍNEA {i}</b>
-
-☎️ <b>NÚMERO</b>
-➜ <code>{linea.get('telefono','-')}</code>
-
-📡 <b>OPERADOR</b>
-➜ <code>{linea.get('operador','-')}</code>
-
-🏢 <b>EMPRESA</b>
-➜ <code>{linea.get('empresa','-')}</code>
-
-📅 <b>PERIODO</b>
-➜ <code>{periodo}</code>
-
-⚡━━━━━━━━━━━━━━━━━━━━━━⚡
-"""
-
+    for i, linea in enumerate(lineas, 1):
+        periodo = linea.get("periodo","-")
+        if len(periodo)==6: periodo = f"{periodo[4:]}/{periodo[:4]}"
         texto += f"""
-💰 <b>Créditos restantes:</b>
-➜ <code>{usuarios[user_id]['creditos']}</code>
-
-🚀 <b>Consulta completada correctamente</b>
-
-⚜️ <b>SISTEMAS DATA PERU</b>
-📡 Powered by CODART X API V1
+📱 <b>LÍNEA {i}</b>
+☎️ <b>NÚMERO</b> ➜ <code>{linea.get('telefono','-')}</code>
+📡 <b>OPERADOR</b> ➜ <code>{linea.get('operador','-')}</code>
+🏢 <b>EMPRESA</b> ➜ <code>{linea.get('empresa','-')}</code>
+📅 <b>PERIODO</b> ➜ <code>{periodo}</code>
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
 """
-
-        botones = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton(
-                    "🔙 VOLVER AL MENÚ",
-                    callback_data="volver_cmds"
-                )
-            ]
-        ])
-
-        await update.message.reply_text(
-            texto,
-            parse_mode="HTML",
-            reply_markup=botones
-        )
-
-    except Exception as e:
-        await update.message.reply_text(
-            f"❌ <b>Error:</b>\n<code>{e}</code>",
-            parse_mode="HTML"
-        )
-
+    texto += f"""
+💳 <b>Créditos restantes:</b> <code>{usuarios[user_id]['creditos']}</code>
+🚀 <b>Consulta completada correctamente</b>
+⚜️ <b>SISTEMAS DATA PERU</b>
+"""
+    await m.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
 async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios()
     usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
 
-    ok, msg = await validar_creditos(user_id, "dni", usuarios)
-    if not ok: return await update.message.reply_text(msg)
-    if not context.args: return await update.message.reply_text("Uso: /dni 12345678")
+    ok, res_cred = await validar_creditos(user_id, "dni", usuarios)
+    if not ok:
+        return await update.message.reply_text(res_cred)
+
+    if not context.args:
+        return await update.message.reply_text(
+            "❌ <b>Uso correcto:</b>\n<code>/dni 12345678</code>",
+            parse_mode="HTML", reply_markup=BTN_VOLVER
+        )
 
     dni_num = context.args[0]
-    m = await update.message.reply_text(f"🔎 Consultando DNI... -{PRECIOS['dni']} creditos")
+    if not (dni_num.isdigit() and len(dni_num) == 8):
+        return await update.message.reply_text(
+            "❌ El DNI debe contener exactamente 8 dígitos.",
+            parse_mode="HTML", reply_markup=BTN_VOLVER
+        )
 
+    m = await update.message.reply_text(f"🔎 Consultando DNI <code>{dni_num}</code>...", parse_mode="HTML")
     url = f"{BASE_URL}/api/v1/consultas/fd/dni/{dni_num}"
 
     try:
-        # TIMEOUT DE 10 SEGUNDOS PARA QUE NO SE QUEDE PEGADO
         data = await asyncio.wait_for(consultar_api_get(url), timeout=10)
     except asyncio.TimeoutError:
-        return await m.edit_text("❌ Error: La API tardó mucho en responder. Intenta de nuevo")
+        return await m.edit_text("❌ <b>Timeout:</b> La API tardó más de 10s. Intenta de nuevo.", parse_mode="HTML", reply_markup=BTN_VOLVER)
     except Exception as e:
-        return await m.edit_text(f"❌ Error de conexión: {str(e)}")
+        return await m.edit_text(f"❌ <b>Error de conexión:</b>\n<code>{e}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
 
     if "error" in data:
-        return await m.edit_text(f"Error: {data['error']}")
-    if not data.get("success"):
-        return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
+        return await m.edit_text(f"❌ <b>Error API:</b>\n<code>{data['error']}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-    # SOLO DESCUENTA SI LLEGO HASTA AQUI
+    if not data.get("success"):
+        return await m.edit_text(f"❌ {data.get('message','DNI no encontrado')}", parse_mode="HTML", reply_markup=BTN_VOLVER)
+
+    # SOLO AQUÍ SE DESCUENTA - API respondió success:true
     usuarios[user_id]["creditos"] -= PRECIOS["dni"]
     usuarios[user_id]["consultas"] += 1
     guardar_usuarios(usuarios)
@@ -1109,73 +1082,120 @@ async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dom = res.get("domicilio", {})
     info = res.get("informacion_general", {})
 
-    texto = f"""[#BOT DATA] ➾ CONSULTA DNI
-[🆔] DNI: {d.get('completo')}
-[👤] Nombre: {res.get('nombres')} {res.get('apellidos')}
-[⚧] Genero: {res.get('genero')}
-[📅] Nac: {n.get('fecha')} | {n.get('edad')}
-[🏠] Dir: {dom.get('direccion')} - {dom.get('distrito')}
-[👨] Padre: {info.get('padre')}
-[👩] Madre: {info.get('madre')}
-💰 Creditos: {usuarios[user_id]['creditos']}"""
+    texto = f"""╔═════════════════════╗
+🪪 <b>DNI • SISTEMA</b>
+╚═════════════════════╝
 
-    await m.edit_text(texto)
-async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE): # <-- ASYNC no sync
+🟢 <b>ESTADO</b>
+➜ ONLINE
+
+🆔 <b>DNI</b>
+➜ <code>{d.get('completo','-')}</code>
+
+👤 <b>TITULAR</b>
+➜ <code>{res.get('nombres','')} {res.get('apellidos','')}</code>
+
+⚧️ <b>GÉNERO</b>
+➜ <code>{res.get('genero','-')}</code>
+
+📅 <b>NACIMIENTO</b>
+➜ <code>{n.get('fecha','-')} | {n.get('edad','-')}</code>
+
+🏠 <b>DOMICILIO</b>
+➜ <code>{dom.get('direccion','-')} - {dom.get('distrito','-')}</code>
+
+👨 <b>PADRE</b>
+➜ <code>{info.get('padre','-')}</code>
+
+👩 <b>MADRE</b>
+➜ <code>{info.get('madre','-')}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+💳 <b>Créditos restantes:</b> <code>{usuarios[user_id]['creditos']}</code>
+
+⚜️ <b>SISTEMAS DATA PERU</b>
+📡 Powered by CODART X API V1
+"""
+    await m.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+
+async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios()
     usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
-    
-    ok, msg = await validar_creditos(user_id, "dnit", usuarios)
-    if not ok: return await update.message.reply_text(msg)
-    
-    if not context.args: return await update.message.reply_text("Uso: /dnit 12345678")
+
+    ok, res_cred = await validar_creditos(user_id, "dnit", usuarios)
+    if not ok:
+        return await update.message.reply_text(res_cred)
+
+    if not context.args:
+        return await update.message.reply_text("❌ <b>Uso:</b> <code>/dnit 12345678</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
+
     dni_num = context.args[0]
-    
-    m = await update.message.reply_text(f"🔎 Consultando DNI-T de {dni_num}... -{PRECIOS['dnit']} creditos")
-    
+    if not (dni_num.isdigit() and len(dni_num) == 8):
+        return await update.message.reply_text("❌ El DNI debe contener exactamente 8 dígitos.", parse_mode="HTML", reply_markup=BTN_VOLVER)
+
+    m = await update.message.reply_text(f"🔎 Consultando DNI-T <code>{dni_num}</code>...", parse_mode="HTML")
     url = f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni_num}"
-    
+
     try:
-        data = await consultar_api_get(url)
+        data = await asyncio.wait_for(consultar_api_get(url), timeout=10)
+    except asyncio.TimeoutError:
+        return await m.edit_text("❌ <b>Timeout:</b> La API tardó más de 10s.", parse_mode="HTML", reply_markup=BTN_VOLVER)
     except Exception as e:
-        return await m.edit_text(f"❌ Error de conexión con la API: {e}")
-    
-    if "error" in data: 
-        return await m.edit_text(f"Error: {data['error']}")
-    if not data.get("success"): 
-        return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
-    
-    res = data.get("data", {})
-    d = res.get("dni", {})
-    n = res.get("nacimiento", {})
-    dom = res.get("domicilio", {})
-    info = res.get("informacion_general", {})
-    images = res.get("images", [])
-    
+        return await m.edit_text(f"❌ <b>Error de conexión:</b>\n<code>{e}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
+
+    if "error" in data:
+        return await m.edit_text(f"❌ <b>Error API:</b>\n<code>{data['error']}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
+    if not data.get("success"):
+        return await m.edit_text(f"❌ {data.get('message','DNI no encontrado')}", parse_mode="HTML", reply_markup=BTN_VOLVER)
+
     usuarios[user_id]["creditos"] -= PRECIOS["dnit"]
     usuarios[user_id]["consultas"] += 1
-    guardar_usuarios(usuarios) 
-    
-    texto = f"""[#BOT DATA] ➾ DNI-T
-[🆔] DNI ➾ {d.get('completo','N/A')}
-[👤] NOMBRE ➾ {res.get('nombres','')} {res.get('apellidos','')}
-[⚧] GENERO ➾ {res.get('genero','N/A')}
-[📅] NACIMIENTO ➾ {n.get('fecha','N/A')} | {n.get('edad','N/A')}
-[🏠] DIRECCION ➾ {dom.get('direccion','N/A')}
-[📚] EDUCACION ➾ {info.get('nivel_educativo','N/A')}
-[💍] ESTADO CIVIL ➾ {info.get('estado_civil','N/A')}
-[📄] EMISION ➾ {info.get('fecha_emision','N/A')} | CADUCA ➾ {info.get('fecha_caducidad','N/A')}
-💰 Creditos: {usuarios[user_id]['creditos']}"""
-    
-    await m.edit_text(texto)
-    
+    guardar_usuarios(usuarios)
+
+    res = data.get("data", {})
+    d = res.get("dni", {}); n = res.get("nacimiento", {}); dom = res.get("domicilio", {})
+    info = res.get("informacion_general", {}); images = res.get("images", [])
+
+    texto = f"""╔═════════════════════╗
+💳 <b>DNI-T • SISTEMA</b>
+╚═════════════════════╝
+
+🟢 <b>ESTADO</b>
+➜ ONLINE
+
+🆔 <b>DNI</b>
+➜ <code>{d.get('completo','-')}</code>
+
+👤 <b>NOMBRE</b>
+➜ <code>{res.get('nombres','')} {res.get('apellidos','')}</code>
+
+📅 <b>NACIMIENTO</b>
+➜ <code>{n.get('fecha','-')} | {n.get('edad','-')}</code>
+
+🏠 <b>DIRECCIÓN</b>
+➜ <code>{dom.get('direccion','-')}</code>
+
+📚 <b>EDUCACIÓN</b>
+➜ <code>{info.get('nivel_educativo','-')}</code>
+
+💍 <b>ESTADO CIVIL</b>
+➜ <code>{info.get('estado_civil','-')}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+💳 <b>Créditos:</b> <code>{usuarios[user_id]['creditos']}</code>
+
+⚜️ <b>SISTEMAS DATA PERU</b>
+"""
+    await m.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+
     for i, img_data in enumerate(images, 1):
         try:
-            base64_str = img_data.get('data_uri', '').split(',')[1]
-            img_bytes = base64.b64decode(base64_str)
-            await context.bot.send_photo(chat_id=update.effective_chat.id, photo=io.BytesIO(img_bytes), caption=f"Foto {i} de {d.get('completo')}")
+            b64 = img_data.get('data_uri','').split(',')[1]
+            await context.bot.send_photo(chat_id=update.effective_chat.id, photo=io.BytesIO(base64.b64decode(b64)), caption=f"Foto {i}")
         except:
             pass
+
 async def hsoat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
