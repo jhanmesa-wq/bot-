@@ -144,6 +144,7 @@ async def den(update: Update, context: ContextTypes.DEFAULT_TYPE):
 )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    VIDEO_LINK = "https://files.catbox.moe/odq1nv.mp4"
     texto = f"""⚜️ <b>¡BIENVENIDO A DATA PERÚ!</b> ⚜️
 
 ━━━━━━━━━━━━━━━━━━
@@ -170,7 +171,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 Gracias por utilizar <b>DATA PERÚ</b>.
 """
-
+    # Primero manda el video
+    await context.bot.send_video(
+        chat_id=update.effective_chat.id,
+        video=VIDEO_LINK,
+        caption=texto,
+        parse_mode='HTML'
+    )
     await update.message.reply_text(
         texto,
         parse_mode="HTML"
@@ -195,9 +202,9 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ]
     ])
 
-    texto = f"""╔══════════════════════════════╗
+    texto = f"""╔════════════════════╗
         ⚜️ 𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦 𝗣𝗘𝗥𝗨 ⚜️
-╚══════════════════════════════╝
+╚════════════════════╝
 
 🚀 𝗟𝗔 𝗣𝗟𝗔𝗧𝗔𝗙𝗢𝗥𝗠𝗔 #𝟭 𝗗𝗘 𝗖𝗢𝗡𝗦𝗨𝗟𝗧𝗔𝗦
 
@@ -944,22 +951,164 @@ async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ <b>Error:</b>\n<code>{e}</code>",
             parse_mode="HTML"
         )
+
+async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+
+    ok, msg = await validar_creditos(user_id, "telp", usuarios)
+    if not ok:
+        return await update.message.reply_text(msg)
+
+    if not context.args:
+        return await update.message.reply_text(
+            "❌ <b>Uso correcto:</b>\n<code>/telp 12345678</code>",
+            parse_mode="HTML"
+        )
+
+    dni = context.args[0]
+
+    if not (dni.isdigit() and len(dni) == 8):
+        return await update.message.reply_text(
+            "❌ El DNI debe contener exactamente 8 dígitos."
+        )
+
+    try:
+        data = await consultar_api_get(
+            f"https://api-codart.cgrt.org/api/v1/consultas/fd/telp/{dni}"
+        )
+
+        if "error" in data:
+            return await update.message.reply_text(
+                f"❌ <b>Error:</b>\n<code>{data['error']}</code>",
+                parse_mode="HTML"
+            )
+
+        if not data.get("success"):
+            return await update.message.reply_text(
+                "❌ No se encontraron líneas telefónicas.",
+                parse_mode="HTML"
+            )
+
+        usuarios[user_id]["creditos"] -= PRECIOS["telp"]
+        usuarios[user_id]["consultas"] += 1
+        guardar_usuarios(usuarios)
+
+        resultado = data["data"]
+        cantidad = resultado.get("lineas_encontradas", 0)
+        lineas = resultado.get("lineas", [])
+
+        texto = f"""╔═════════════════════╗
+📡 <b>TELP • SISTEMA</b>
+╚═════════════════════╝
+
+🟢 <b>ESTADO DEL SISTEMA</b>
+➜ ONLINE
+
+🆔 <b>DNI</b>
+➜ <code>{dni}</code>
+
+📞 <b>LÍNEAS ENCONTRADAS</b>
+➜ <code>{cantidad}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+"""
+
+        for i, linea in enumerate(lineas, 1):
+
+            periodo = linea.get("periodo", "-")
+            if len(periodo) == 6:
+                periodo = f"{periodo[4:]}/{periodo[:4]}"
+
+            texto += f"""
+📱 <b>LÍNEA {i}</b>
+
+☎️ <b>NÚMERO</b>
+➜ <code>{linea.get('telefono','-')}</code>
+
+📡 <b>OPERADOR</b>
+➜ <code>{linea.get('operador','-')}</code>
+
+🏢 <b>EMPRESA</b>
+➜ <code>{linea.get('empresa','-')}</code>
+
+📅 <b>PERIODO</b>
+➜ <code>{periodo}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+"""
+
+        texto += f"""
+💰 <b>Créditos restantes:</b>
+➜ <code>{usuarios[user_id]['creditos']}</code>
+
+🚀 <b>Consulta completada correctamente</b>
+
+⚜️ <b>SISTEMAS DATA PERU</b>
+📡 Powered by CODART X API V1
+"""
+
+        botones = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton(
+                    "🔙 VOLVER AL MENÚ",
+                    callback_data="volver_cmds"
+                )
+            ]
+        ])
+
+        await update.message.reply_text(
+            texto,
+            parse_mode="HTML",
+            reply_markup=botones
+        )
+
+    except Exception as e:
+        await update.message.reply_text(
+            f"❌ <b>Error:</b>\n<code>{e}</code>",
+            parse_mode="HTML"
+        )
+
 async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+
     ok, msg = await validar_creditos(user_id, "dni", usuarios)
     if not ok: return await update.message.reply_text(msg)
     if not context.args: return await update.message.reply_text("Uso: /dni 12345678")
+
     dni_num = context.args[0]
-    m = await update.message.reply_text("🔎 Consultando DNI... -4 creditos")
+    m = await update.message.reply_text(f"🔎 Consultando DNI... -{PRECIOS['dni']} creditos")
+
     url = f"{BASE_URL}/api/v1/consultas/fd/dni/{dni_num}"
-    data = await consultar_api_get(url)
-    if "error" in data: return await m.edit_text(f"Error: {data['error']}")
-    if not data.get("success"): return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
-    res = data.get("data", {}); d = res.get("dni", {}); n = res.get("nacimiento", {}); dom = res.get("domicilio", {}); info = res.get("informacion_general", {})
+
+    try:
+        # TIMEOUT DE 10 SEGUNDOS PARA QUE NO SE QUEDE PEGADO
+        data = await asyncio.wait_for(consultar_api_get(url), timeout=10)
+    except asyncio.TimeoutError:
+        return await m.edit_text("❌ Error: La API tardó mucho en responder. Intenta de nuevo")
+    except Exception as e:
+        return await m.edit_text(f"❌ Error de conexión: {str(e)}")
+
+    if "error" in data:
+        return await m.edit_text(f"Error: {data['error']}")
+    if not data.get("success"):
+        return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
+
+    # SOLO DESCUENTA SI LLEGO HASTA AQUI
     usuarios[user_id]["creditos"] -= PRECIOS["dni"]
     usuarios[user_id]["consultas"] += 1
     guardar_usuarios(usuarios)
+
+    res = data.get("data", {})
+    d = res.get("dni", {})
+    n = res.get("nacimiento", {})
+    dom = res.get("domicilio", {})
+    info = res.get("informacion_general", {})
+
     texto = f"""[#BOT DATA] ➾ CONSULTA DNI
 [🆔] DNI: {d.get('completo')}
 [👤] Nombre: {res.get('nombres')} {res.get('apellidos')}
@@ -969,37 +1118,57 @@ async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
 [👨] Padre: {info.get('padre')}
 [👩] Madre: {info.get('madre')}
 💰 Creditos: {usuarios[user_id]['creditos']}"""
-    await m.edit_text(texto)
 
-async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await m.edit_text(texto)
+async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE): # <-- ASYNC no sync
     user_id = str(update.effective_user.id)
-    usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+    
     ok, msg = await validar_creditos(user_id, "dnit", usuarios)
     if not ok: return await update.message.reply_text(msg)
+    
     if not context.args: return await update.message.reply_text("Uso: /dnit 12345678")
     dni_num = context.args[0]
+    
     m = await update.message.reply_text(f"🔎 Consultando DNI-T de {dni_num}... -{PRECIOS['dnit']} creditos")
+    
     url = f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni_num}"
-    data = await consultar_api_get(url)
-    if "error" in data: return await m.edit_text(f"Error: {data['error']}")
-    if not data.get("success"): return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
+    
+    try:
+        data = await consultar_api_get(url)
+    except Exception as e:
+        return await m.edit_text(f"❌ Error de conexión con la API: {e}")
+    
+    if "error" in data: 
+        return await m.edit_text(f"Error: {data['error']}")
+    if not data.get("success"): 
+        return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
+    
     res = data.get("data", {})
-    d = res.get("dni", {}); n = res.get("nacimiento", {}); dom = res.get("domicilio", {}); info = res.get("informacion_general", {})
+    d = res.get("dni", {})
+    n = res.get("nacimiento", {})
+    dom = res.get("domicilio", {})
+    info = res.get("informacion_general", {})
     images = res.get("images", [])
+    
     usuarios[user_id]["creditos"] -= PRECIOS["dnit"]
     usuarios[user_id]["consultas"] += 1
     guardar_usuarios(usuarios) 
+    
     texto = f"""[#BOT DATA] ➾ DNI-T
-[🆔] DNI ➾ {d.get('completo')}
-[👤] NOMBRE ➾ {res.get('nombres')} {res.get('apellidos')}
-[⚧] GENERO ➾ {res.get('genero')}
-[📅] NACIMIENTO ➾ {n.get('fecha')} | {n.get('edad')}
-[🏠] DIRECCION ➾ {dom.get('direccion')}
-[📚] EDUCACION ➾ {info.get('nivel_educativo')}
-[💍] ESTADO CIVIL ➾ {info.get('estado_civil')}
-[📄] EMISION ➾ {info.get('fecha_emision')} | CADUCA ➾ {info.get('fecha_caducidad')}
+[🆔] DNI ➾ {d.get('completo','N/A')}
+[👤] NOMBRE ➾ {res.get('nombres','')} {res.get('apellidos','')}
+[⚧] GENERO ➾ {res.get('genero','N/A')}
+[📅] NACIMIENTO ➾ {n.get('fecha','N/A')} | {n.get('edad','N/A')}
+[🏠] DIRECCION ➾ {dom.get('direccion','N/A')}
+[📚] EDUCACION ➾ {info.get('nivel_educativo','N/A')}
+[💍] ESTADO CIVIL ➾ {info.get('estado_civil','N/A')}
+[📄] EMISION ➾ {info.get('fecha_emision','N/A')} | CADUCA ➾ {info.get('fecha_caducidad','N/A')}
 💰 Creditos: {usuarios[user_id]['creditos']}"""
+    
     await m.edit_text(texto)
+    
     for i, img_data in enumerate(images, 1):
         try:
             base64_str = img_data.get('data_uri', '').split(',')[1]
@@ -1007,7 +1176,6 @@ async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_photo(chat_id=update.effective_chat.id, photo=io.BytesIO(img_bytes), caption=f"Foto {i} de {d.get('completo')}")
         except:
             pass
-
 async def hsoat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
@@ -1121,32 +1289,6 @@ async def suel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await m.edit_text(texto, parse_mode="HTML")
 
-async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
-    ok, msg = await validar_creditos(user_id, "telp", usuarios)
-    if not ok: return await update.message.reply_text(msg)
-    if not context.args: return await update.message.reply_text("Uso: /telp 12345678")
-    dni_num = context.args[0]
-    m = await update.message.reply_text(f"🔎 Consultando TELÉFONOS de {dni_num}... -{PRECIOS['telp']} creditos")
-    url = f"{BASE_URL}/api/v1/consultas/fd/telp/{dni_num}"
-    data = await consultar_api_get(url)
-    if "error" in data: return await m.edit_text(f"Error: {data['error']}")
-    if not data.get("success"): return await m.edit_text(f"Error: {data.get('message','DNI no encontrado')}")
-    res = data.get("data", {})
-    lineas = res.get("lineas", []); cantidad = res.get("lineas_encontradas")
-    usuarios[user_id]["creditos"] -= PRECIOS["telp"]
-    usuarios[user_id]["consultas"] += 1
-    guardar_usuarios(usuarios)
-    texto = f"""[#BOT DATA] ➾ TELEFONOS
-[🆔] DNI ➾ {dni_num}
-[📞] LINEAS ENCONTRADAS ➾ {cantidad}"""
-    for i, l in enumerate(lineas, 1):
-        periodo = l.get('periodo')
-        periodo_fmt = f"{periodo[4:6]}/{periodo[:4]}" if periodo and len(periodo)==6 else periodo
-        texto += f"\n\n--- LINEA {i} ---\n[📱] NUMERO ➾ {l.get('telefono')}\n[📡] OPERADOR ➾ {l.get('operador')}"
-    texto += f"\n\n💰 Creditos: {usuarios[user_id]['creditos']}"
-    await m.edit_text(texto)
 
 #... aqui van tus otros comandos: placa, agv, denuncia, nm, telpcel
 
