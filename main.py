@@ -79,23 +79,6 @@ PRECIOS = {
 # ============================================================
 # FLASK KEEP-ALIVE
 # ============================================================
-app_flask = Flask(__name__)
-
-
-@app_flask.route("/")
-def home() -> str:
-    return "Bot activo"
-
-
-def run_flask() -> None:
-    port = int(os.getenv("PORT", "8080"))
-    app_flask.run(host="0.0.0.0", port=port, use_reloader=False)
-
-
-def keep_alive() -> None:
-    thread = Thread(target=run_flask, daemon=True)
-    thread.start()
-
 
 # ============================================================
 # ESTILO FUTURISTA CENTRALIZADO
@@ -1324,10 +1307,8 @@ def validar_configuracion() -> None:
         logger.warning("API_TOKEN no está configurado. Las consultas API fallarán hasta configurarlo.")
 
 
-def main() -> None:
-    validar_configuracion()
+def main():
     keep_alive()
-
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Callbacks primero.
