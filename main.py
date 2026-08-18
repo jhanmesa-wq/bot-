@@ -1367,7 +1367,7 @@ def main() -> None:
     )
 
     print("Bot iniciado v2.1...")
-        application.run_polling(drop_pending_updates=True)
+    application.run_polling(drop_pending_updates=True)
     
     if __name__ == "__main__":
         main()
