@@ -436,43 +436,41 @@ async def saldo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ═══ FUNCIÓN QUE LLAMA TU APK PARA SUMAR CRÉDITOS ═══
-async def procesar_pago_automatico(datos_pago):
-    """
-    Tu APK llama a esta función cuando detecta un pago
-    datos_pago = {"numero": "987654321", "monto": "5.00", "de": "Nombre"}
-    """
-    celular = datos_pago.get("numero", "").strip()
-    monto_str = datos_pago.get("monto", "0")
-    remitente = datos_pago.get("de", "Desconocido")
+@app.route("/webhook-pagos/", methods=["POST"])
+def recibir_pago():
+    # 📥 Recibir datos SIN pedir clave
+    datos = request.get_json()
+    if not datos:
+        return jsonify({"error": "Sin datos"}), 400
+
+    celular = datos.get("numero", "").strip()
+    monto_str = datos.get("monto", "0")
+    remitente = datos.get("de", "Desconocido")
 
     try:
         monto = float(monto_str.replace(",", "."))
     except:
-        return {"ok": False, "mensaje": "Monto inválido"}
+        return jsonify({"error": "Monto inválido"}), 400
 
     creditos = int(monto * TASA_CREDITOS)
-    usuarios = cargar_usuarios()
+
     # 🔍 Buscar usuario por su celular
+    usuarios = cargar_usuarios()
     user_id_encontrado = None
     for user_id, info in usuarios.items():
         if str(info.get("celular", "")).strip() == celular:
             user_id_encontrado = user_id
             break
 
-    if not user_id_encontrado:
-        print(f"⚠️ Pago de {remitente} ({celular}) — NO REGISTRADO")
-        return {"ok": False, "mensaje": "Usuario no registrado"}
-
     # ✅ SUMAR CRÉDITOS
-    usuarios[user_id_encontrado]["creditos"] = usuarios[user_id_encontrado].get("creditos", 0) + creditos
-    guardar_usuarios(usuarios)
+    if user_id_encontrado and creditos > 0:
+        usuarios[user_id_encontrado]["creditos"] = usuarios[user_id_encontrado].get("creditos", 0) + creditos
+        guardar_usuarios(usuarios)
+        print(f"✅ PAGO — S/{monto} de {remitente} → +{creditos} créditos a {user_id_encontrado}")
+    else:
+        print(f"⚠️ Pago S/{monto} de {remitente} — Usuario NO REGISTRADO: {celular}")
 
-    # 📩 Notificar al usuario por Telegram
-    await notificar_usuario(user_id_encontrado, monto, creditos, remitente)
-
-    print(f"✅ PAGO — S/{monto} de {remitente} → +{creditos} créditos a usuario {user_id_encontrado}")
-    return {"ok": True, "creditos": creditos, "usuario_id": user_id_encontrado}
-
+    return jsonify({"status": "ok"}), 200
 # ═══ NOTIFICAR AL USUARIO ═══
 async def notificar_usuario(user_id, monto, creditos, remitente):
     """Avisar al usuario que se le sumaron los créditos"""
