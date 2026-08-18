@@ -374,9 +374,9 @@ async def micelular(update: Update, context: ContextTypes.DEFAULT_TYPE):
     celular = context.args[0].strip()
     
     # ✅ SOLO UNA BARRA \ → NO dos \\
-    if not re.match(r"^9\d{8}$", celular):
+    if not re.match(r"^9\d{9}$", celular):
         return await update.message.reply_text(
-            "❌ Número inválido. Debe empezar con 9 y tener 8 dígitos.",
+            "❌ Número inválido. Debe empezar con 9 y tener 9 dígitos.",
             parse_mode="HTML"
         )
 
@@ -388,7 +388,7 @@ async def micelular(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "se sumarán SOLOS en segundos ⚡",
         parse_mode="HTML"
     )
-    
+
 async def pagar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios()
