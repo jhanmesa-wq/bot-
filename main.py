@@ -22,7 +22,7 @@ from telegram.ext import (
 )
 
 from flask import Flask, request, jsonify
-app = Flask(name)
+app = Flask(__name__)
 
 # ============================================================
 # LOGGING
