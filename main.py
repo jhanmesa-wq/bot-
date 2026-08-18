@@ -22,14 +22,25 @@ from telegram.ext import (
     filters,
 )
 
-# ============================================================
-# LOGGING
-# ============================================================
-logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    level=logging.INFO,
-)
-logger = logging.getLogger("specter_peru")
+ry:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+app_flask = Flask('')
+
+@app_flask.route('/')
+def home():
+    return "Bot activo"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    app_flask.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_flask)
+    t.start()
 
 # ============================================================
 # CONFIGURACIÓN
@@ -1355,9 +1366,8 @@ def main() -> None:
         )
     )
 
-    logger.info("Bot iniciado correctamente.")
-    application.run_polling(drop_pending_updates=True)
-
-
-if __name__ == "__main__":
-    main()
+    print("Bot iniciado v2.1...")
+        application.run_polling(drop_pending_updates=True)
+    
+    if __name__ == "__main__":
+        main()
