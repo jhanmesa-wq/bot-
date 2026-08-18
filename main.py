@@ -19,9 +19,10 @@ from telegram.ext import (
     ContextTypes,
     MessageHandler,
     filters,
-from flask import Flask, request, jsonify
-app = Flask(__name__)  # ✅ ESTA LÍNEA FALTABA
 )
+
+from flask import Flask, request, jsonify
+app = Flask(name)
 
 # ============================================================
 # LOGGING
