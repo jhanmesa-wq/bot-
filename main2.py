@@ -51,7 +51,7 @@ BOT_NAME = "⚜ DATA_PERU⚜"
 BASE_URL = "https://api-codart.cgrt.org"
 
 PRECIOS = {
-    "dni": 4, "agv": 8, "telpcel": 15, "facial": 30, "ruc": 5, "suel": 5,
+    "dni": 4, "ag": 8, "telpcel": 15, "facial": 30, "ruc": 5, "suel": 5,
     "denuncia": 10, "placa": 12, "nm": 6, "hsoat": 8, "denpla": 30, "dnit": 5, "telp": 15
 }
 
@@ -203,7 +203,7 @@ async def cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ])
 
-    texto = f"""╔════════════╗
+    texto = f"""╔════════════════════╗
         ⚜️ 𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦 𝗣𝗘𝗥𝗨 ⚜️
 ╚════════════════════╝
 
@@ -264,9 +264,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         ])
 
-        texto = f"""╔══════════════════════╗
+        texto = f"""╔════════════════════╗
         ⚜️ 𝗦𝗜𝗦𝗧𝗘𝗠𝗔𝗦 𝗣𝗘𝗥𝗨 ⚜️
-╚════════════════════════╝
+╚════════════════════╝
 
 🚀 𝗟𝗔 𝗣𝗟𝗔𝗧𝗔𝗙𝗢𝗥𝗠𝗔 #𝟭 𝗗𝗘 𝗖𝗢𝗡𝗦𝗨𝗟𝗧𝗔𝗦
 
@@ -1122,42 +1122,7 @@ async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     await m.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    usuarios = cargar_usuarios()
-    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
-
-    ok, res_cred = await validar_creditos(user_id, "dnit", usuarios)
-    if not ok:
-        return await update.message.reply_text(res_cred)
-
-    if not context.args:
-        return await update.message.reply_text("❌ <b>Uso:</b> <code>/dnit 12345678</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
-
-    dni_num = context.args[0]
-    if not (dni_num.isdigit() and len(dni_num) == 8):
-        return await update.message.reply_text("❌ El DNI debe contener exactamente 8 dígitos.", parse_mode="HTML", reply_markup=BTN_VOLVER)
-
-    m = await update.message.reply_text(f"🔎 Consultando DNI-T <code>{dni_num}</code>...", parse_mode="HTML")
-    url = f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni_num}"
-
-    try:
-        data = await asyncio.wait_for(consultar_api_get(url), timeout=10)
-    except asyncio.TimeoutError:
-        return await m.edit_text("❌ <b>Timeout:</b> La API tardó más de 10s.", parse_mode="HTML", reply_markup=BTN_VOLVER)
-    except Exception as e:
-        return await m.edit_text(f"❌ <b>Error de conexión:</b>\n<code>{e}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
-
-    if "error" in data:
-        return await m.edit_text(f"❌ <b>Error API:</b>\n<code>{data['error']}</code>", parse_mode="HTML", reply_markup=BTN_VOLVER)
-    if not data.get("success"):
-        return await m.edit_text(f"❌ {data.get('message','DNI no encontrado')}", parse_mode="HTML", reply_markup=BTN_VOLVER)
-
-    usuarios[user_id]["creditos"] -= PRECIOS["dnit"]
-    usuarios[user_id]["consultas"] += 1
-    guardar_usuarios(usuarios)
-
-    res = data.get("data", {})
+ta", {})
     d = res.get("dni", {}); n = res.get("nacimiento", {}); dom = res.get("domicilio", {})
     info = res.get("informacion_general", {}); images = res.get("images", [])
 
@@ -1210,21 +1175,13 @@ async def hsoat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     m = await update.message.reply_text(f"🔎 Consultando HSOAT de {placa}... -{PRECIOS['hsoat']} creditos")
     url = f"{BASE_URL}/api/v1/consultas/fd/hsoat/{placa}"
     data = await consultar_api_get(url)
-    if "error" in data: return await m.edit_text(f"Error: {data['error']}")
-    if not data.get("success"): return await m.edit_text(f"Error: {data.get('message','Placa no encontrada')}")
-    res = data.get("data", {})
-    placa_data = res.get("placa"); cantidad = res.get("cantidad_registros"); historial = res.get("historial", [])
-    usuarios[user_id]["creditos"] -= PRECIOS["hsoat"]
-    usuarios[user_id]["consultas"] += 1
-    guardar_usuarios(usuarios)
-    texto = f"""[#BOT DATA] ➾ HSOAT
-[🚗] PLACA ➾ {placa_data}
-[📊] REGISTROS ➾ {cantidad}"""
-    for i, h in enumerate(historial, 1):
-        texto += f"\n\n--- SOAT {i} ---\n[🏢] COMPAÑIA ➾ {h.get('compania')}\n[✅] ESTADO ➾ {h.get('estado')}\n[📄] PÓLIZA ➾ {h.get('poliza')}"
-    texto += f"\n\n💰 Creditos: {usuarios[user_id]['creditos']}"
-    await m.edit_text(texto)
+    if "error" in data: return await m.edit_text(f"Error: {data['error']}
+                                                 
 
+
+
+
+                                                 
 async def denpla(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     usuarios = cargar_usuarios(); usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
@@ -1313,6 +1270,137 @@ async def suel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await m.edit_text(texto, parse_mode="HTML")
 
+async def ag(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+
+    ok, msg = await validar_creditos(user_id, "ag", usuarios)
+    if not ok:
+        return await update.message.reply_text(msg)
+
+    if not context.args:
+        return await update.message.reply_text(
+            "❌ <b>Uso correcto:</b>\n<code>/ag 12345678</code>",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER
+        )
+
+    dni = context.args[0]
+
+    if not (dni.isdigit() and len(dni) == 8):
+        return await update.message.reply_text(
+            "❌ El DNI debe contener exactamente 8 dígitos.",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER
+        )
+
+    m = await update.message.reply_text(
+        f"🔎 Consultando árbol genealógico de <code>{dni}</code>...",
+        parse_mode="HTML"
+    )
+
+    url = f"{BASE_URL}/api/v1/consultas/fd/ag/{dni}"
+
+    try:
+        data = await asyncio.wait_for(consultar_api_get(url), timeout=10)
+    except asyncio.TimeoutError:
+        return await m.edit_text(
+            "❌ <b>Timeout:</b> La API tardó más de 10s. Intenta de nuevo.",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER
+        )
+    except Exception as e:
+        return await m.edit_text(
+            f"❌ <b>Error de conexión:</b>\n<code>{e}</code>",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER
+        )
+
+    if "error" in data:
+        return await m.edit_text(
+            f"❌ <b>Error API:</b>\n<code>{data['error']}</code>",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER
+        )
+
+    if not data.get("success"):
+        return await m.edit_text(
+            f"❌ {data.get('message','No se encontraron familiares')}",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER
+        )
+
+    # Solo descuenta si success:true
+    usuarios[user_id]["creditos"] -= PRECIOS["ag"]
+    usuarios[user_id]["consultas"] += 1
+    guardar_usuarios(usuarios)
+
+    res = data.get("data", {})
+    consulta = res.get("consulta", dni)
+    familiares = res.get("familiares", 0)
+    relaciones = res.get("relaciones", [])
+
+    texto = f"""╔═════════════════════╗
+🌳 <b>AG • ÁRBOL GENEALÓGICO</b>
+╚═════════════════════╝
+
+🟢 <b>ESTADO DEL SISTEMA</b>
+➜ ONLINE
+
+🆔 <b>DNI CONSULTADO</b>
+➜ <code>{consulta}</code>
+
+👥 <b>FAMILIARES ENCONTRADOS</b>
+➜ <code>{familiares}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+"""
+
+    for i, rel in enumerate(relaciones, 1):
+        icono = "👨" if rel.get("sexo") == "MASCULINO" else "👩"
+        verif = rel.get("verificacion", "-")
+        verif_icon = "✅" if verif == "ALTO" else "⚠️" if verif == "MEDIO" else "❓"
+
+        texto += f"""
+{icono} <b>FAMILIAR #{i} • {rel.get('relacion','-')}</b>
+
+🪪 <b>DNI</b>
+➜ <code>{rel.get('dni','-')}</code>
+
+📛 <b>NOMBRE</b>
+➜ <code>{rel.get('nombres','')} {rel.get('apellidos','')}</code>
+
+🎂 <b>EDAD</b>
+➜ <code>{rel.get('edad','-')}</code>
+
+⚧️ <b>SEXO</b>
+➜ <code>{rel.get('sexo','-')}</code>
+
+🔗 <b>RELACIÓN</b>
+➜ <code>{rel.get('relacion','-')}</code>
+
+{verif_icon} <b>VERIFICACIÓN</b>
+➜ <code>{verif}</code>
+
+⚡━━━━━━━━━━━━━━━━━━━━━━⚡
+"""
+
+    texto += f"""
+💳 <b>Créditos restantes:</b> <code>{usuarios[user_id]['creditos']}</code>
+
+🚀 <b>Consulta completada correctamente</b>
+
+⚜️ <b>SISTEMAS DATA PERU</b>
+📡 Powered by CODART X API V1
+"""
+
+    await m.edit_text(
+        texto,
+        parse_mode="HTML",
+        reply_markup=BTN_VOLVER
+    )
+
 
 #... aqui van tus otros comandos: placa, agv, denuncia, nm, telpcel
 
@@ -1324,6 +1412,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("cmds", cmds))
     application.add_handler(CommandHandler("suel", suel))
+    application.add_handler(CommandHandler("ag", ag))
     application.add_handler(CommandHandler("register", register))
     application.add_handler(CommandHandler("me", me))
     application.add_handler(CommandHandler("suel", suel))
