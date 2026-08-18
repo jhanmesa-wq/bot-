@@ -22,25 +22,14 @@ from telegram.ext import (
     filters,
 )
 
-try:
-    loop = asyncio.get_event_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-app_flask = Flask('')
-
-@app_flask.route('/')
-def home():
-    return "Bot activo"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 8080))
-    app_flask.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run_flask)
-    t.start()
+# ============================================================
+# LOGGING
+# ============================================================
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger("specter_peru")
 
 # ============================================================
 # CONFIGURACIÓN
@@ -79,6 +68,31 @@ PRECIOS = {
 # ============================================================
 # FLASK KEEP-ALIVE
 # ============================================================
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+app_flask = Flask('')
+
+@app_flask.route('/')
+def home():
+    return "🔥 SPECTER PERÚ BOT ACTIVO 24/7"
+
+@app_flask.route('/health')
+def health():
+    return "OK", 200
+
+def run_flask():
+    # Render asigna un puerto automáticamente en la variable de entorno PORT
+    port = int(os.environ.get("PORT", 8080))
+    app_flask.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_flask)
+    t.daemon = True
+    t.start()
 
 # ============================================================
 # ESTILO FUTURISTA CENTRALIZADO
@@ -1308,6 +1322,11 @@ def validar_configuracion() -> None:
 
 
 def main():
+    if not BOT_TOKEN:
+        print("Falta BOT_TOKEN")
+        return
+
+    # 1. Iniciar servidor Keep-Alive
     keep_alive()
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -1347,8 +1366,8 @@ def main():
         )
     )
 
-    print("Bot iniciado v2.1...")
-    application.run_polling(drop_pending_updates=True)
+    print("🚀 SPECTER PERÚ ONLINE")
+        application.run_polling(drop_pending_updates=True)
     
     if __name__ == "__main__":
         main()
