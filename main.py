@@ -404,7 +404,9 @@ async def pagar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             monto = 5.0
 
     creditos = int(monto * TASA_CREDITOS)
-    qr_url = f"https://files.catbox.moe/0y85js.jpg:{TU_CELULAR_YAPE}?amount={monto}"
+    
+    # ✅ TU IMAGEN QR FIJA
+    qr_url = "https://files.catbox.moe/0y85js.jpg"
 
     texto = (
         "💳 <b>INSTRUCCIONES DE PAGO</b>\n"
@@ -416,10 +418,14 @@ async def pagar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
         "✅ Abre Yape → Escanea el QR o paga al número\n"
         "⚡ Los créditos se suman SOLOS en segundos\n"
-        "⚠️ NO envíes comprobante, el sistema lo detecta solo.",
+        "⚠️ NO envíes comprobante, el sistema lo detecta solo."
+    )
+
+    await update.message.reply_photo(
+        photo=qr_url,
+        caption=texto,
         parse_mode="HTML"
     )
-    await update.message.reply_photo(photo=qr_url, caption=texto)
 
 async def saldo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
