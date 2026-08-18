@@ -40,7 +40,10 @@ ARCHIVO_USUARIOS = os.getenv("ARCHIVO_USUARIOS") or "usuarios.json"
 BASE_URL = os.getenv("BASE_URL") or "https://api-codart.cgrt.org"
 BOT_USER = "@specter_Dox44bot"
 BOT_NAME = "⚜ SPECTER PERÚ ⚜"
-
+CLAVE_SECRETA = os.getenv("CLAVE_SECRETA", "PON_TU_CLAVE_AQUI")  # MISMA QUE EN TU APK
+TASA_CREDITOS = 1
+TU_CELULAR_YAPE = "925805734"
+TU_NOMBRE = "CHRISTIAN GUSTAVO RAMOS GONZALES"
 # Permite varios administradores separados por coma.
 ADMIN_ID = {
     item.strip()
@@ -336,6 +339,160 @@ async def editar_error(mensaje, mensaje_error: str) -> None:
 # ============================================================
 # COMANDOS DE CONSULTA
 # ============================================================
+
+# ═══ BASE DE DATOS ═══
+ARCHIVO_USUARIOS = "usuarios2.json"
+
+def cargar_usuarios():
+    try:
+        with open(ARCHIVO_USUARIOS, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def guardar_usuarios(usuarios):
+    with open(ARCHIVO_USUARIOS, "w", encoding="utf-8") as f:
+        json.dump(usuarios, f, indent=2, ensure_ascii=False)
+
+# ═══ COMANDOS DEL BOT ═══
+
+async def micelular(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+
+    if not context.args:
+        return await update.message.reply_text(
+            "📱 <b>Uso:</b> /micelular 987654321\n\n"
+            "Guarda tu número de Yape para que los pagos\n"
+            "se sumen automáticamente a tu saldo ⚡",
+            parse_mode="HTML"
+        )
+
+    celular = context.args[0].strip()
+    if not re.match(r"^9\\d{8}$", celular):
+        return await update.message.reply_text(
+            "❌ Número inválido. Debe empezar con 9 y tener 8 dígitos.",
+            parse_mode="HTML"
+        )
+
+    usuarios[user_id]["celular"] = celular
+    guardar_usuarios(usuarios)
+    await update.message.reply_text(
+        f"✅ <b>Número guardado:</b> {celular}\n\n"
+        "💳 Ahora paga por Yape y los créditos\n"
+        "se sumarán SOLOS en segundos ⚡",
+        parse_mode="HTML"
+    )
+
+async def pagar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+
+    if not usuarios[user_id].get("celular"):
+        return await update.message.reply_text(
+            "⚠️ Primero guarda tu número:\n<code>/micelular 987654321</code>",
+            parse_mode="HTML"
+        )
+
+    monto = 5.0
+    if context.args:
+        try:
+            monto = max(1.0, float(context.args[0].replace(",", ".")))
+        except:
+            monto = 5.0
+
+    creditos = int(monto * TASA_CREDITOS)
+    qr_url = f"https://files.catbox.moe/0y85js.jpg:{TU_CELULAR_YAPE}?amount={monto}"
+
+    texto = (
+        "💳 <b>INSTRUCCIONES DE PAGO</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"• 💰 Monto: <b>S/ {monto:.2f}</b>\n"
+        f"• 🎁 Recibes: <b>{creditos} Créditos</b>\n"
+        f"• 📱 Paga al: <b>{TU_CELULAR_YAPE}</b>\n"
+        f"• 👤 A nombre: <b>{TU_NOMBRE}</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        "✅ Abre Yape → Escanea el QR o paga al número\n"
+        "⚡ Los créditos se suman SOLOS en segundos\n"
+        "⚠️ NO envíes comprobante, el sistema lo detecta solo.",
+        parse_mode="HTML"
+    )
+    await update.message.reply_photo(photo=qr_url, caption=texto)
+
+async def saldo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    usuarios = cargar_usuarios()
+    usuarios.setdefault(user_id, {"creditos": 0, "consultas": 0})
+    saldo_actual = usuarios[user_id].get("creditos", 0)
+    celular = usuarios[user_id].get("celular", "No registrado")
+
+    await update.message.reply_text(
+        f"💰 <b>Tu Saldo:</b> {saldo_actual} Créditos\n"
+        f"📱 Tu número: {celular}\n\n"
+        "Usa /pagar para recargar más.",
+        parse_mode="HTML"
+    )
+
+# ═══ FUNCIÓN QUE LLAMA TU APK PARA SUMAR CRÉDITOS ═══
+async def procesar_pago_automatico(datos_pago):
+    """
+    Tu APK llama a esta función cuando detecta un pago
+    datos_pago = {"numero": "987654321", "monto": "5.00", "de": "Nombre"}
+    """
+    celular = datos_pago.get("numero", "").strip()
+    monto_str = datos_pago.get("monto", "0")
+    remitente = datos_pago.get("de", "Desconocido")
+
+    try:
+        monto = float(monto_str.replace(",", "."))
+    except:
+        return {"ok": False, "mensaje": "Monto inválido"}
+
+    creditos = int(monto * TASA_CREDITOS)
+    usuarios = cargar_usuarios()
+    # 🔍 Buscar usuario por su celular
+    user_id_encontrado = None
+    for user_id, info in usuarios.items():
+        if str(info.get("celular", "")).strip() == celular:
+            user_id_encontrado = user_id
+            break
+
+    if not user_id_encontrado:
+        print(f"⚠️ Pago de {remitente} ({celular}) — NO REGISTRADO")
+        return {"ok": False, "mensaje": "Usuario no registrado"}
+
+    # ✅ SUMAR CRÉDITOS
+    usuarios[user_id_encontrado]["creditos"] = usuarios[user_id_encontrado].get("creditos", 0) + creditos
+    guardar_usuarios(usuarios)
+
+    # 📩 Notificar al usuario por Telegram
+    await notificar_usuario(user_id_encontrado, monto, creditos, remitente)
+
+    print(f"✅ PAGO — S/{monto} de {remitente} → +{creditos} créditos a usuario {user_id_encontrado}")
+    return {"ok": True, "creditos": creditos, "usuario_id": user_id_encontrado}
+
+# ═══ NOTIFICAR AL USUARIO ═══
+async def notificar_usuario(user_id, monto, creditos, remitente):
+    """Avisar al usuario que se le sumaron los créditos"""
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    mensaje = (
+        "✅ <b>PAGO DETECTADO</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"• 💰 Recibido: <b>S/ {monto:.2f}</b>\n"
+        f"• 🎁 +<b>{creditos}</b> Créditos agregados ✅\n"
+        f"• 👤 De: {remitente}\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        "⚡ ¡Ya puedes usar tus créditos!"
+    )
+    async with aiohttp.ClientSession() as session:
+        await session.post(url, json={
+            "chat_id": user_id,
+            "text": mensaje,
+            "parse_mode": "HTML"
+        })
+
 async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
@@ -1354,6 +1511,9 @@ def main():
     application.add_handler(CommandHandler("hsoat", hsoat))
     application.add_handler(CommandHandler("denpla", denpla))
     application.add_handler(CommandHandler("suel", suel))
+    application.add_handler(CommandHandler("micelular", micelular))
+    application.add_handler(CommandHandler("pagar", pagar))
+    application.add_handler(CommandHandler("saldo", saldo))
 
     # /facial mediante foto + caption
     application.add_handler(
