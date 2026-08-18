@@ -11,7 +11,6 @@ from threading import Thread
 from typing import Any, Dict, Optional, Tuple
 
 import httpx
-from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -20,6 +19,8 @@ from telegram.ext import (
     ContextTypes,
     MessageHandler,
     filters,
+from flask import Flask, request, jsonify
+app = Flask(__name__)  # ✅ ESTA LÍNEA FALTABA
 )
 
 # ============================================================
