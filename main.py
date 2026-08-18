@@ -1322,18 +1322,15 @@ def validar_configuracion() -> None:
 
 
 def main():
-    if not BOT_TOKEN:
-        print("Falta BOT_TOKEN")
-        return
-
-    # 1. Iniciar servidor Keep-Alive
+    validar_configuracion()
     keep_alive()
+
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Callbacks primero.
+    # Callbacks
     application.add_handler(CallbackQueryHandler(button_handler))
 
-    # Generales.
+    # Generales
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("cmds", cmds))
     application.add_handler(CommandHandler("register", register))
@@ -1341,11 +1338,11 @@ def main():
     application.add_handler(CommandHandler("buy", buy))
     application.add_handler(CommandHandler("staff", staff))
 
-    # Administración.
+    # Administración
     application.add_handler(CommandHandler("addcreditos", addcreditos))
     application.add_handler(CommandHandler("quitarcrd", quitarcrd))
 
-    # Consultas existentes en el archivo original.
+    # Consultas
     application.add_handler(CommandHandler("dni", dni))
     application.add_handler(CommandHandler("dnit", dnit))
     application.add_handler(CommandHandler("agv", agv))
@@ -1358,7 +1355,7 @@ def main():
     application.add_handler(CommandHandler("denpla", denpla))
     application.add_handler(CommandHandler("suel", suel))
 
-    # Facial mediante foto + caption /facial.
+    # /facial mediante foto + caption
     application.add_handler(
         MessageHandler(
             filters.PHOTO & filters.CaptionRegex(r"^/facial(?:\s|$)"),
@@ -1366,8 +1363,9 @@ def main():
         )
     )
 
-    print("🚀 SPECTER PERÚ ONLINE")
+    logger.info("🚀 SPECTER PERÚ ONLINE")
     application.run_polling(drop_pending_updates=True)
-    
-    if __name__ == "__main__":
-        main()
+
+
+if __name__ == "__main__":
+    main()
