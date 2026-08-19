@@ -85,8 +85,6 @@ def recibir_pago():
 datos = request.get_json()
 if not datos:
 return jsonify({"error": "Sin datos"}), 400
-code
-Code
 celular = str(datos.get("numero", "")).strip()
 monto_str = str(datos.get("monto", "0"))
 remitente = datos.get("de", "Desconocido")
@@ -209,8 +207,6 @@ usuarios: Dict[str, Dict[str, Any]],
 costo = PRECIOS.get(comando)
 if costo is None:
 return False, f"El servicio <code>/{html.escape(comando)}</code> no tiene precio configurado."
-code
-Code
 saldo = int(usuarios.get(user_id, {}).get("creditos", 0) or 0)
 if saldo < costo:
     return (
@@ -232,8 +228,6 @@ usuarios: Dict[str, Dict[str, Any]],
 costo = int(PRECIOS[comando])
 usuario = usuarios[user_id]
 saldo = int(usuario.get("creditos", 0) or 0)
-code
-Code
 if saldo < costo:
     raise ValueError("Saldo insuficiente al intentar cobrar la consulta.")
 
@@ -354,8 +348,6 @@ COMANDOS DE CONSULTA IMPLEMENTADOS
 async def micelular(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
-code
-Code
 if not context.args:
     return await update.message.reply_text(
         "📱 <b>Uso:</b> /micelular 987654321\n\n"
@@ -382,8 +374,6 @@ await update.message.reply_text(
 async def pagar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
-code
-Code
 if not usuario.get("celular"):
     return await update.message.reply_text(
         "⚠️ Primero guarda tu número:\n<code>/micelular 987654321</code>",
@@ -423,8 +413,6 @@ usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 saldo_actual = usuario.get("creditos", 0)
 celular = usuario.get("celular", "No registrado")
-code
-Code
 await update.message.reply_text(
     f"💰 <b>Tu Saldo:</b> {saldo_actual} Créditos\n"
     f"📱 Tu número: {celular}\n\n"
@@ -434,8 +422,6 @@ await update.message.reply_text(
 async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
-code
-Code
 if len(context.args) != 1:
     return await update.message.reply_text(
         f"{titulo_sistema('DNI • SISTEMA', '🪪')}\n\nUso: <code>/dni 12345678</code>\n💎 Costo: <code>{PRECIOS['dni']}</code> créditos",
@@ -494,8 +480,6 @@ except Exception as e:
 async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
-code
-Code
 if len(context.args) != 1:
     return await update.message.reply_text(
         f"{titulo_sistema('DNI-T • SISTEMA', '💳')}\n\nUso: <code>/dnit 12345678</code>\n💎 Costo: <code>{PRECIOS['dnit']}</code> créditos",
@@ -546,8 +530,6 @@ except Exception as e:
 async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
-code
-Code
 if len(context.args) != 1:
     return await update.message.reply_text(f"Uso: /telpcel 900000001", parse_mode="HTML")
 
@@ -583,8 +565,6 @@ async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /telp DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "telp", usuarios, user_id)
 if costo is None: return
@@ -615,8 +595,6 @@ async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /agv DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "agv", usuarios, user_id)
 if costo is None: return
@@ -649,8 +627,6 @@ async def den(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /den DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "denuncia", usuarios, user_id)
 if costo is None: return
@@ -682,8 +658,6 @@ async def denuncias(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /denuncias DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "denuncias", usuarios, user_id)
 if costo is None: return
@@ -713,8 +687,6 @@ async def hsoat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /hsoat PLACA")
-code
-Code
 placa = context.args[0].strip().upper()
 costo = await preparar_consulta(update, "hsoat", usuarios, user_id)
 if costo is None: return
@@ -746,8 +718,6 @@ async def suel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /suel DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "suel", usuarios, user_id)
 if costo is None: return
@@ -779,8 +749,6 @@ async def denpla(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /denpla PLACA")
-code
-Code
 placa = context.args[0].strip().upper()
 costo = await preparar_consulta(update, "denpla", usuarios, user_id)
 if costo is None: return
@@ -810,8 +778,6 @@ except Exception as e:
 async def facial(update: Update, context: ContextTypes.DEFAULT_TYPE):
 message = update.message
 if not message: return
-code
-Code
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 
@@ -857,8 +823,6 @@ async def revtec(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /revtec PLACA")
-code
-Code
 placa = context.args[0].strip().upper()
 costo = await preparar_consulta(update, "revtec", usuarios, user_id)
 if costo is None: return
@@ -890,8 +854,6 @@ async def dir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /dir DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "dir", usuarios, user_id)
 if costo is None: return
@@ -922,8 +884,6 @@ async def dnivel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /dnivel DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "dnivel", usuarios, user_id)
 if costo is None: return
@@ -957,8 +917,6 @@ async def rqh(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 if len(context.args) != 1: return await responder_error(update, "Uso: /rqh DNI")
-code
-Code
 dni_num = context.args[0].strip()
 costo = await preparar_consulta(update, "rqh", usuarios, user_id)
 if costo is None: return
@@ -1028,8 +986,6 @@ usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
 guardar_usuarios(usuarios)
 username = f"@{usuario.get('username')}" if usuario.get("username") else "Sin username"
-code
-Code
 texto = (
     f"{titulo_sistema('PERFIL DE USUARIO', '👤')}\n\n"
     f"👤 Nombre: <code>{error_html(usuario.get('nombre', 'Usuario'))}</code>\n"
@@ -1093,8 +1049,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 query = update.callback_query
 if not query: return
 await query.answer()
-code
-Code
 if query.data == "volver_cmds":
     return await query.edit_message_text(
         f"{titulo_sistema('MENÚ DE SERVICIOS', '🛰️')}\n\nSelecciona una categoría:",
@@ -1152,8 +1106,7 @@ if query.data in textos:
 def main():
 if not BOT_TOKEN: raise RuntimeError("Falta BOT_TOKEN")
 keep_alive()
-code
-Code
+
 application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # Handlers
