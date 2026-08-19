@@ -162,6 +162,21 @@ def error_html(texto: Any) -> str:
     if texto is None:
         return "-"
     return html.escape(str(texto))
+
+
+def data_o_vacia(payload: Any) -> Dict[str, Any]:
+    return payload if isinstance(payload, dict) else {}
+
+
+def extraer_data_uri(data_uri: Any) -> bytes:
+    if not data_uri or not isinstance(data_uri, str):
+        raise ValueError("La API no devolvió un archivo válido.")
+    if "," not in data_uri:
+        raise ValueError("Formato de archivo inválido.")
+    try:
+        return base64.b64decode(data_uri.split(",", 1)[1])
+    except (TypeError, ValueError) as exc:
+        raise ValueError("No se pudo decodificar el archivo recibido.") from exc
 #============================================================
 #BASE DE DATOS DE USUARIOS
 #============================================================
@@ -630,9 +645,10 @@ async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
-    if len(context.args) != 1:
+    args = context.args or []
+    if len(args) != 1:
         return await responder_error(update, "Uso: /agv DNI")
-    dni_num = context.args[0].strip()
+    dni_num = args[0].strip()
     costo = await preparar_consulta(update, "agv", usuarios, user_id)
     if costo is None:
         return
@@ -640,7 +656,7 @@ async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = await update.message.reply_text("🔎 Consultando AGV...", parse_mode="HTML")
 
     try:
-        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/agv/{dni}")
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/agv/{dni_num}")
         if not data.get("success"):
             return await editar_error(mensaje, "No se encontró data.")
 
@@ -667,9 +683,10 @@ async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def den(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
-    if len(context.args) != 1:
+    args = context.args or []
+    if len(args) != 1:
         return await responder_error(update, "Uso: /den DNI")
-    dni_num = context.args[0].strip()
+    dni = args[0].strip()
     costo = await preparar_consulta(update, "denuncia", usuarios, user_id)
     if costo is None:
         return
@@ -677,7 +694,7 @@ async def den(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = await update.message.reply_text("🔎 Buscando historial de denuncias...", parse_mode="HTML")
 
     try:
-        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/den/{dni_num}")
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/den/{dni}")
         if not data.get("success"):
             return await editar_error(mensaje, "Sin denuncias.")
 
@@ -703,9 +720,10 @@ async def den(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def denuncias(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
-    if len(context.args) != 1:
+    args = context.args or []
+    if len(args) != 1:
         return await responder_error(update, "Uso: /denuncias DNI")
-    dni_num = context.args[0].strip()
+    dni = args[0].strip()
     costo = await preparar_consulta(update, "denuncias", usuarios, user_id)
     if costo is None:
         return
@@ -713,7 +731,7 @@ async def denuncias(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = await update.message.reply_text("📂 Descargando archivos de denuncias...", parse_mode="HTML")
 
     try:
-        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/denuncias/{dni_num}")
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/denuncias/{dni}")
         if not data.get("success"):
             return await editar_error(mensaje, "No se encontraron documentos.")
 
@@ -773,7 +791,7 @@ async def hsoat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def suel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
-    if len(context.args) != 1:
+    if not context.args or len(context.args) != 1:
         return await responder_error(update, "Uso: /suel DNI")
     dni_num = context.args[0].strip()
     costo = await preparar_consulta(update, "suel", usuarios, user_id)
@@ -809,7 +827,7 @@ async def suel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def denpla(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
-    if len(context.args) != 1:
+    if not context.args or len(context.args) != 1:
         return await responder_error(update, "Uso: /denpla PLACA")
     placa = context.args[0].strip().upper()
     costo = await preparar_consulta(update, "denpla", usuarios, user_id)
@@ -928,34 +946,34 @@ async def revtec(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def dir_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
-    if len(context.args) != 1:
+    if not context.args or len(context.args) != 1:
         return await responder_error(update, "Uso: /dir DNI")
     dni_num = context.args[0].strip()
     costo = await preparar_consulta(update, "dir", usuarios, user_id)
-if costo is None: return
+    if costo is None: return
 
-mensaje = await update.message.reply_text("🏠 Buscando historial de direcciones...", parse_mode="HTML")
+    mensaje = await update.message.reply_text("🏠 Buscando historial de direcciones...", parse_mode="HTML")
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dir/{dni_num}")
-    if not data.get("success"): return await editar_error(mensaje, "Sin direcciones registradas.")
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dir/{dni_num}")
+        if not data.get("success"): return await editar_error(mensaje, "Sin direcciones registradas.")
 
-    res = data.get("data", {})
-    direcciones = res.get("direcciones", [])
-    saldo_restante = await cobrar_creditos(user_id, "dir", usuarios)
+        res = data.get("data", {})
+        direcciones = res.get("direcciones", [])
+        saldo_restante = await cobrar_creditos(user_id, "dir", usuarios)
 
-    texto = f"{titulo_sistema('HISTORIAL DIRECCIONES', '📍')}\n\n"
-    for d in direcciones:
-        texto += (
-            f"🏠 <b>DIRECCIÓN:</b> <code>{error_html(d.get('direccion'))}</code>\n"
-            f"📍 <b>UBICACIÓN:</b> <code>{error_html(d.get('ubicacion'))}</code>\n"
-            f"📡 <b>FUENTE:</b> <code>{error_html(d.get('fuente'))}</code>\n"
-            f"{SEPARADOR}\n"
-        )
-    texto += f"💳 <b>SALDO:</b> {saldo_restante} crd"
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
-except Exception as e:
-    await editar_error(mensaje, str(e))
+        texto = f"{titulo_sistema('HISTORIAL DIRECCIONES', '📍')}\n\n"
+        for d in direcciones:
+            texto += (
+                f"🏠 <b>DIRECCIÓN:</b> <code>{error_html(d.get('direccion'))}</code>\n"
+                f"📍 <b>UBICACIÓN:</b> <code>{error_html(d.get('ubicacion'))}</code>\n"
+                f"📡 <b>FUENTE:</b> <code>{error_html(d.get('fuente'))}</code>\n"
+                f"{SEPARADOR}\n"
+            )
+        texto += f"💳 <b>SALDO:</b> {saldo_restante} crd"
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+    except Exception as e:
+        await editar_error(mensaje, str(e))
 async def dnivel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
