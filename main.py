@@ -356,287 +356,314 @@ async def editar_error(mensaje, mensaje_error: str) -> None:
         parse_mode="HTML",
         reply_markup=BTN_VOLVER,
     )
-============================================================
-COMANDOS DE CONSULTA IMPLEMENTADOS
-============================================================
+#============================================================
+#COMANDOS DE CONSULTA IMPLEMENTADOS
+#============================================================
 async def micelular(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if not context.args:
-    return await update.message.reply_text(
-        "📱 <b>Uso:</b> /micelular 987654321\n\n"
-        "Guarda tu número de Yape para que los pagos\n"
-        "se sumen automáticamente a tu saldo ⚡",
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if not context.args:
+        return await update.message.reply_text(
+            "📱 <b>Uso:</b> /micelular 987654321\n\n"
+            "Guarda tu número de Yape para que los pagos\n"
+            "se sumen automáticamente a tu saldo ⚡",
+            parse_mode="HTML"
+        )
+
+    celular = context.args[0].strip()
+    if not re.match(r"^9\d{8}$", celular):
+        return await update.message.reply_text(
+            "❌ Número inválido. Debe empezar con 9 y tener 9 dígitos.",
+            parse_mode="HTML"
+        )
+
+    usuario["celular"] = celular
+    guardar_usuarios(usuarios)
+    await update.message.reply_text(
+        f"✅ <b>Número guardado:</b> {celular}\n\n"
+        "💳 Ahora paga por Yape y los créditos\n"
+        "se sumarán SOLOS en segundos ⚡",
         parse_mode="HTML"
     )
-
-celular = context.args[0].strip()
-if not re.match(r"^9\d{8}$", celular):
-    return await update.message.reply_text(
-        "❌ Número inválido. Debe empezar con 9 y tener 9 dígitos.",
-        parse_mode="HTML"
-    )
-
-usuario["celular"] = celular
-guardar_usuarios(usuarios)
-await update.message.reply_text(
-    f"✅ <b>Número guardado:</b> {celular}\n\n"
-    "💳 Ahora paga por Yape y los créditos\n"
-    "se sumarán SOLOS en segundos ⚡",
-    parse_mode="HTML"
-)
 async def pagar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if not usuario.get("celular"):
-    return await update.message.reply_text(
-        "⚠️ Primero guarda tu número:\n<code>/micelular 987654321</code>",
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if not usuario.get("celular"):
+        return await update.message.reply_text(
+            "⚠️ Primero guarda tu número:\n<code>/micelular 987654321</code>",
+            parse_mode="HTML"
+        )
+
+    monto = 5.0
+    if context.args:
+        try:
+            monto = max(1.0, float(context.args[0].replace(",", ".")))
+        except:
+            monto = 5.0
+
+    creditos = int(monto * TASA_CREDITOS)
+    qr_url = "https://files.catbox.moe/0y85js.jpg"
+
+    texto = (
+        "💳 <b>INSTRUCCIONES DE PAGO</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"• 💰 Monto: <b>S/ {monto:.2f}</b>\n"
+        f"• 🎁 Recibes: <b>{creditos} Créditos</b>\n"
+        f"• 📱 Paga al: <b>{TU_CELULAR_YAPE}</b>\n"
+        f"• 👤 A nombre: <b>{TU_NOMBRE}</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        "✅ Abre Yape → Escanea el QR o paga al número\n"
+        "⚡ Los créditos se suman SOLOS en segundos\n"
+        "⚠️ NO envíes comprobante, el sistema lo detecta solo."
+    )
+
+    await update.message.reply_photo(
+        photo=qr_url,
+        caption=texto,
         parse_mode="HTML"
     )
 
-monto = 5.0
-if context.args:
-    try:
-        monto = max(1.0, float(context.args[0].replace(",", ".")))
-    except:
-        monto = 5.0
 
-creditos = int(monto * TASA_CREDITOS)
-qr_url = "https://files.catbox.moe/0y85js.jpg"
-
-texto = (
-    "💳 <b>INSTRUCCIONES DE PAGO</b>\n"
-    "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
-    f"• 💰 Monto: <b>S/ {monto:.2f}</b>\n"
-    f"• 🎁 Recibes: <b>{creditos} Créditos</b>\n"
-    f"• 📱 Paga al: <b>{TU_CELULAR_YAPE}</b>\n"
-    f"• 👤 A nombre: <b>{TU_NOMBRE}</b>\n"
-    "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
-    "✅ Abre Yape → Escanea el QR o paga al número\n"
-    "⚡ Los créditos se suman SOLOS en segundos\n"
-    "⚠️ NO envíes comprobante, el sistema lo detecta solo."
-)
-
-await update.message.reply_photo(
-    photo=qr_url,
-    caption=texto,
-    parse_mode="HTML"
-)
 async def saldo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-saldo_actual = usuario.get("creditos", 0)
-celular = usuario.get("celular", "No registrado")
-await update.message.reply_text(
-    f"💰 <b>Tu Saldo:</b> {saldo_actual} Créditos\n"
-    f"📱 Tu número: {celular}\n\n"
-    "Usa /pagar para recargar más.",
-    parse_mode="HTML"
-)
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    saldo_actual = usuario.get("creditos", 0)
+    celular = usuario.get("celular", "No registrado")
+    await update.message.reply_text(
+        f"💰 <b>Tu Saldo:</b> {saldo_actual} Créditos\n"
+        f"📱 Tu número: {celular}\n\n"
+        "Usa /pagar para recargar más.",
+        parse_mode="HTML"
+    )
+
+
 async def dni(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if len(context.args) != 1:
-    return await update.message.reply_text(
-        f"{titulo_sistema('DNI • SISTEMA', '🪪')}\n\nUso: <code>/dni 12345678</code>\n💎 Costo: <code>{PRECIOS['dni']}</code> créditos",
-        parse_mode="HTML",
-        reply_markup=BTN_VOLVER,
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if len(context.args) != 1:
+        return await update.message.reply_text(
+            f"{titulo_sistema('DNI • SISTEMA', '🪪')}\n\nUso: <code>/dni 12345678</code>\n💎 Costo: <code>{PRECIOS['dni']}</code> créditos",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER,
+        )
+
+    dni_num = context.args[0].strip()
+    if not (dni_num.isdigit() and len(dni_num) == 8):
+        return await responder_error(update, "El DNI debe contener exactamente 8 dígitos.")
+
+    costo = await preparar_consulta(update, "dni", usuarios, user_id)
+    if costo is None:
+        return
+
+    mensaje = await update.message.reply_text(
+        f"🔎 <b>CONSULTANDO DNI</b>\n🪪 DNI: <code>{dni_num}</code>\n💎 Costo: <code>{costo}</code> créditos\n\n⏳ Procesando...",
+        parse_mode="HTML"
     )
 
-dni_num = context.args[0].strip()
-if not (dni_num.isdigit() and len(dni_num) == 8):
-    return await responder_error(update, "El DNI debe contener exactamente 8 dígitos.")
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dni/{dni_num}")
+        if data.get("error"):
+            return await editar_error(mensaje, data["error"])
+        if not data.get("success"):
+            return await editar_error(mensaje, data.get("message", "No encontrado."))
 
-costo = await preparar_consulta(update, "dni", usuarios, user_id)
-if costo is None: return
+        info = data.get("data", {})
+        d = info.get("dni", {})
+        n = info.get("nacimiento", {})
+        dom = info.get("domicilio", {})
+        gen = info.get("informacion_general", {})
+        saldo_restante = await cobrar_creditos(user_id, "dni", usuarios)
 
-mensaje = await update.message.reply_text(
-    f"🔎 <b>CONSULTANDO DNI</b>\n🪪 DNI: <code>{dni_num}</code>\n💎 Costo: <code>{costo}</code> créditos\n\n⏳ Procesando...",
-    parse_mode="HTML"
-)
+        texto = (
+            f"{titulo_sistema('DNI • RESULTADO', '🪪')}\n\n"
+            f"🪪 <b>DNI:</b> <code>{error_html(d.get('completo', dni_num))}</code>\n"
+            f"👤 <b>NOMBRE:</b> <code>{error_html(info.get('nombres'))} {error_html(info.get('apellidos'))}</code>\n"
+            f"⚧️ <b>GÉNERO:</b> <code>{error_html(info.get('genero'))}</code>\n"
+            f"📅 <b>NACIMIENTO:</b> <code>{error_html(n.get('fecha'))} ({error_html(n.get('edad'))})</code>\n"
+            f"📍 <b>LUGAR:</b> <code>{error_html(n.get('distrito'))}, {error_html(n.get('provincia'))}</code>\n"
+            f"🏠 <b>DIRECCIÓN:</b> <code>{error_html(dom.get('direccion'))}</code>\n"
+            f"💍 <b>ESTADO CIVIL:</b> <code>{error_html(gen.get('estado_civil'))}</code>\n"
+            f"👨 <b>PADRE:</b> <code>{error_html(gen.get('padre'))}</code>\n"
+            f"👩 <b>MADRE:</b> <code>{error_html(gen.get('madre'))}</code>\n\n"
+            f"{SEPARADOR}\n"
+            f"💎 <b>COSTO:</b> <code>{costo}</code> crd\n"
+            f"💳 <b>SALDO:</b> <code>{saldo_restante}</code> crd"
+        )
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dni/{dni_num}")
-    if data.get("error"): return await editar_error(mensaje, data["error"])
-    if not data.get("success"): return await editar_error(mensaje, data.get("message", "No encontrado."))
+        images = info.get("images", [])
+        if images:
+            raw = base64.b64decode(images[0].get("data_uri").split(",")[1])
+            await update.message.reply_photo(photo=BytesIO(raw), caption="📸 Foto RENIEC")
+    except Exception as e:
+        logger.exception("Error en dni")
+        await editar_error(mensaje, str(e))
 
-    info = data.get("data", {})
-    d = info.get("dni", {})
-    n = info.get("nacimiento", {})
-    dom = info.get("domicilio", {})
-    gen = info.get("informacion_general", {})
-    saldo_restante = await cobrar_creditos(user_id, "dni", usuarios)
 
-    texto = (
-        f"{titulo_sistema('DNI • RESULTADO', '🪪')}\n\n"
-        f"🪪 <b>DNI:</b> <code>{error_html(d.get('completo', dni_num))}</code>\n"
-        f"👤 <b>NOMBRE:</b> <code>{error_html(info.get('nombres'))} {error_html(info.get('apellidos'))}</code>\n"
-        f"⚧️ <b>GÉNERO:</b> <code>{error_html(info.get('genero'))}</code>\n"
-        f"📅 <b>NACIMIENTO:</b> <code>{error_html(n.get('fecha'))} ({error_html(n.get('edad'))})</code>\n"
-        f"📍 <b>LUGAR:</b> <code>{error_html(n.get('distrito'))}, {error_html(n.get('provincia'))}</code>\n"
-        f"🏠 <b>DIRECCIÓN:</b> <code>{error_html(dom.get('direccion'))}</code>\n"
-        f"💍 <b>ESTADO CIVIL:</b> <code>{error_html(gen.get('estado_civil'))}</code>\n"
-        f"👨 <b>PADRE:</b> <code>{error_html(gen.get('padre'))}</code>\n"
-        f"👩 <b>MADRE:</b> <code>{error_html(gen.get('madre'))}</code>\n\n"
-        f"{SEPARADOR}\n"
-        f"💎 <b>COSTO:</b> <code>{costo}</code> crd\n"
-        f"💳 <b>SALDO:</b> <code>{saldo_restante}</code> crd"
-    )
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
-
-    images = info.get("images", [])
-    if images:
-        raw = base64.b64decode(images[0].get("data_uri").split(",")[1])
-        await update.message.reply_photo(photo=BytesIO(raw), caption="📸 Foto RENIEC")
-except Exception as e:
-    logger.exception("Error en dni")
-    await editar_error(mensaje, str(e))
 async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if len(context.args) != 1:
-    return await update.message.reply_text(
-        f"{titulo_sistema('DNI-T • SISTEMA', '💳')}\n\nUso: <code>/dnit 12345678</code>\n💎 Costo: <code>{PRECIOS['dnit']}</code> créditos",
-        parse_mode="HTML",
-        reply_markup=BTN_VOLVER,
-    )
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if len(context.args) != 1:
+        return await update.message.reply_text(
+            f"{titulo_sistema('DNI-T • SISTEMA', '💳')}\n\nUso: <code>/dnit 12345678</code>\n💎 Costo: <code>{PRECIOS['dnit']}</code> créditos",
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER,
+        )
 
-dni_num = context.args[0].strip()
-costo = await preparar_consulta(update, "dnit", usuarios, user_id)
-if costo is None: return
+    dni_num = context.args[0].strip()
+    costo = await preparar_consulta(update, "dnit", usuarios, user_id)
+    if costo is None:
+        return
 
-mensaje = await update.message.reply_text("🔎 Consultando DNI Completo (T)...", parse_mode="HTML")
+    mensaje = await update.message.reply_text("🔎 Consultando DNI Completo (T)...", parse_mode="HTML")
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni_num}")
-    if not data.get("success"): return await editar_error(mensaje, data.get("message", "Error"))
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni_num}")
+        if not data.get("success"):
+            return await editar_error(mensaje, data.get("message", "Error"))
 
-    info = data.get("data", {})
-    d = info.get("dni", {})
-    n = info.get("nacimiento", {})
-    gen = info.get("informacion_general", {})
-    dom = info.get("domicilio", {})
-    
-    saldo_restante = await cobrar_creditos(user_id, "dnit", usuarios)
+        info = data.get("data", {})
+        d = info.get("dni", {})
+        n = info.get("nacimiento", {})
+        gen = info.get("informacion_general", {})
+        dom = info.get("domicilio", {})
 
-    texto = (
-        f"{titulo_sistema('DNI-T • DETALLADO', '💳')}\n\n"
-        f"🪪 <b>DNI:</b> <code>{error_html(d.get('completo'))}</code>\n"
-        f"👤 <b>TITULAR:</b> <code>{error_html(info.get('nombres'))} {error_html(info.get('apellidos'))}</code>\n"
-        f"🎂 <b>EDAD:</b> <code>{error_html(n.get('edad'))}</code>\n"
-        f"📅 <b>FECHA NAC:</b> <code>{error_html(n.get('fecha'))}</code>\n"
-        f"🎓 <b>ESTUDIOS:</b> <code>{error_html(gen.get('nivel_educativo'))}</code>\n"
-        f"📏 <b>ESTATURA:</b> <code>{error_html(gen.get('estatura'))}</code>\n"
-        f"📑 <b>EMISIÓN:</b> <code>{error_html(gen.get('fecha_emision'))}</code>\n"
-        f"📅 <b>CADUCIDAD:</b> <code>{error_html(gen.get('fecha_caducidad'))}</code>\n"
-        f"🏠 <b>DOMICILIO:</b> <code>{error_html(dom.get('direccion'))}</code>\n"
-        f"📍 <b>UBICACIÓN:</b> <code>{error_html(dom.get('distrito'))} - {error_html(dom.get('provincia'))}</code>\n"
-        f"{SEPARADOR}\n"
-        f"💳 <b>SALDO:</b> <code>{saldo_restante}</code> crd"
-    )
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+        saldo_restante = await cobrar_creditos(user_id, "dnit", usuarios)
 
-    for img in info.get("images", [])[:2]:
-        raw = base64.b64decode(img.get("data_uri").split(",")[1])
-        await update.message.reply_photo(photo=BytesIO(raw))
-except Exception as e:
-    await editar_error(mensaje, str(e))
+        texto = (
+            f"{titulo_sistema('DNI-T • DETALLADO', '💳')}\n\n"
+            f"🪪 <b>DNI:</b> <code>{error_html(d.get('completo'))}</code>\n"
+            f"👤 <b>TITULAR:</b> <code>{error_html(info.get('nombres'))} {error_html(info.get('apellidos'))}</code>\n"
+            f"🎂 <b>EDAD:</b> <code>{error_html(n.get('edad'))}</code>\n"
+            f"📅 <b>FECHA NAC:</b> <code>{error_html(n.get('fecha'))}</code>\n"
+            f"🎓 <b>ESTUDIOS:</b> <code>{error_html(gen.get('nivel_educativo'))}</code>\n"
+            f"📏 <b>ESTATURA:</b> <code>{error_html(gen.get('estatura'))}</code>\n"
+            f"📑 <b>EMISIÓN:</b> <code>{error_html(gen.get('fecha_emision'))}</code>\n"
+            f"📅 <b>CADUCIDAD:</b> <code>{error_html(gen.get('fecha_caducidad'))}</code>\n"
+            f"🏠 <b>DOMICILIO:</b> <code>{error_html(dom.get('direccion'))}</code>\n"
+            f"📍 <b>UBICACIÓN:</b> <code>{error_html(dom.get('distrito'))} - {error_html(dom.get('provincia'))}</code>\n"
+            f"{SEPARADOR}\n"
+            f"💳 <b>SALDO:</b> <code>{saldo_restante}</code> crd"
+        )
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+
+        for img in info.get("images", [])[:2]:
+            raw = base64.b64decode(img.get("data_uri").split(",")[1])
+            await update.message.reply_photo(photo=BytesIO(raw))
+    except Exception as e:
+        await editar_error(mensaje, str(e))
+
+
 async def telpcel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if len(context.args) != 1:
-    return await update.message.reply_text(f"Uso: /telpcel 900000001", parse_mode="HTML")
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if len(context.args) != 1:
+        return await update.message.reply_text(f"Uso: /telpcel 900000001", parse_mode="HTML")
 
-numero = context.args[0].strip()
-costo = await preparar_consulta(update, "telpcel", usuarios, user_id)
-if costo is None: return
+    numero = context.args[0].strip()
+    costo = await preparar_consulta(update, "telpcel", usuarios, user_id)
+    if costo is None:
+        return
 
-mensaje = await update.message.reply_text("📡 Buscando titular de línea...", parse_mode="HTML")
+    mensaje = await update.message.reply_text("📡 Buscando titular de línea...", parse_mode="HTML")
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/telp/cel/{numero}")
-    if not data.get("success"): return await editar_error(mensaje, "No se encontraron resultados.")
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/telp/cel/{numero}")
+        if not data.get("success"):
+            return await editar_error(mensaje, "No se encontraron resultados.")
 
-    res = data.get("data", {})
-    titulares = res.get("titulares", [])
-    saldo_restante = await cobrar_creditos(user_id, "telpcel", usuarios)
+        res = data.get("data", {})
+        titulares = res.get("titulares", [])
+        saldo_restante = await cobrar_creditos(user_id, "telpcel", usuarios)
 
-    texto = f"{titulo_sistema('TITULAR CELULAR', '📱')}\n\n"
-    for t in titulares:
-        texto += (
-            f"👤 <b>TITULAR:</b> <code>{error_html(t.get('titular'))}</code>\n"
-            f"🪪 <b>DNI/RUC:</b> <code>{error_html(t.get('dni_ruc'))}</code>\n"
-            f"📡 <b>OPERADOR:</b> <code>{error_html(t.get('operador'))}</code>\n"
-            f"💳 <b>PLAN:</b> <code>{error_html(t.get('plan'))}</code>\n"
-            f"📧 <b>CORREO:</b> <code>{error_html(t.get('correo'))}</code>\n"
-            f"{SEPARADOR}\n"
-        )
-    texto += f"💳 <b>SALDO:</b> {saldo_restante} crd"
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
-except Exception as e:
-    await editar_error(mensaje, str(e))
+        texto = f"{titulo_sistema('TITULAR CELULAR', '📱')}\n\n"
+        for t in titulares:
+            texto += (
+                f"👤 <b>TITULAR:</b> <code>{error_html(t.get('titular'))}</code>\n"
+                f"🪪 <b>DNI/RUC:</b> <code>{error_html(t.get('dni_ruc'))}</code>\n"
+                f"📡 <b>OPERADOR:</b> <code>{error_html(t.get('operador'))}</code>\n"
+                f"💳 <b>PLAN:</b> <code>{error_html(t.get('plan'))}</code>\n"
+                f"📧 <b>CORREO:</b> <code>{error_html(t.get('correo'))}</code>\n"
+                f"{SEPARADOR}\n"
+            )
+        texto += f"💳 <b>SALDO:</b> {saldo_restante} crd"
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+    except Exception as e:
+        await editar_error(mensaje, str(e))
+
+
 async def telp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if len(context.args) != 1: return await responder_error(update, "Uso: /telp DNI")
-dni_num = context.args[0].strip()
-costo = await preparar_consulta(update, "telp", usuarios, user_id)
-if costo is None: return
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if len(context.args) != 1:
+        return await responder_error(update, "Uso: /telp DNI")
+    dni_num = context.args[0].strip()
+    costo = await preparar_consulta(update, "telp", usuarios, user_id)
+    if costo is None:
+        return
 
-mensaje = await update.message.reply_text("🔎 Consultando líneas telefónicas...", parse_mode="HTML")
+    mensaje = await update.message.reply_text("🔎 Consultando líneas telefónicas...", parse_mode="HTML")
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/telp/{dni_num}")
-    if not data.get("success"): return await editar_error(mensaje, "Sin líneas registradas.")
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/telp/{dni_num}")
+        if not data.get("success"):
+            return await editar_error(mensaje, "Sin líneas registradas.")
 
-    res = data.get("data", {})
-    lineas = res.get("lineas", [])
-    saldo_restante = await cobrar_creditos(user_id, "telp", usuarios)
+        res = data.get("data", {})
+        lineas = res.get("lineas", [])
+        saldo_restante = await cobrar_creditos(user_id, "telp", usuarios)
 
-    texto = f"{titulo_sistema('LÍNEAS ASOCIADAS', '📡')}\n\n"
-    for l in lineas:
-        texto += (
-            f"📱 <b>NÚMERO:</b> <code>{error_html(l.get('telefono'))}</code>\n"
-            f"🏢 <b>OPERADOR:</b> <code>{error_html(l.get('operador'))}</code>\n"
-            f"📅 <b>PERIODO:</b> <code>{error_html(l.get('periodo'))}</code>\n"
-            f"{SEPARADOR}\n"
-        )
-    texto += f"💳 <b>SALDO:</b> {saldo_restante} crd"
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
-except Exception as e:
-    await editar_error(mensaje, str(e))
+        texto = f"{titulo_sistema('LÍNEAS ASOCIADAS', '📡')}\n\n"
+        for l in lineas:
+            texto += (
+                f"📱 <b>NÚMERO:</b> <code>{error_html(l.get('telefono'))}</code>\n"
+                f"🏢 <b>OPERADOR:</b> <code>{error_html(l.get('operador'))}</code>\n"
+                f"📅 <b>PERIODO:</b> <code>{error_html(l.get('periodo'))}</code>\n"
+                f"{SEPARADOR}\n"
+            )
+        texto += f"💳 <b>SALDO:</b> {saldo_restante} crd"
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+    except Exception as e:
+        await editar_error(mensaje, str(e))
+
+
 async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if len(context.args) != 1: return await responder_error(update, "Uso: /agv DNI")
-dni_num = context.args[0].strip()
-costo = await preparar_consulta(update, "agv", usuarios, user_id)
-if costo is None: return
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if len(context.args) != 1:
+        return await responder_error(update, "Uso: /agv DNI")
+    dni_num = context.args[0].strip()
+    costo = await preparar_consulta(update, "agv", usuarios, user_id)
+    if costo is None:
+        return
 
-mensaje = await update.message.reply_text("🔎 Consultando AGV...", parse_mode="HTML")
+    mensaje = await update.message.reply_text("🔎 Consultando AGV...", parse_mode="HTML")
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/agv/{dni_num}")
-    if not data.get("success"): return await editar_error(mensaje, "No se encontró data.")
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/agv/{dni_num}")
+        if not data.get("success"):
+            return await editar_error(mensaje, "No se encontró data.")
 
-    res = data.get("data", {})
-    saldo_restante = await cobrar_creditos(user_id, "agv", usuarios)
+        res = data.get("data", {})
+        saldo_restante = await cobrar_creditos(user_id, "agv", usuarios)
 
-    texto = (
-        f"{titulo_sistema('CONSULTA AGV', '🛰️')}\n\n"
-        f"🪪 <b>DNI:</b> <code>{error_html(res.get('dni'))}</code>\n"
-        f"👤 <b>NOMBRE:</b> <code>{error_html(res.get('nombres'))} {error_html(res.get('apellidos'))}</code>\n"
-        f"⚧️ <b>GÉNERO:</b> <code>{error_html(res.get('genero'))}</code>\n"
-        f"🎂 <b>EDAD:</b> <code>{error_html(res.get('edad'))}</code>\n\n"
-        f"💳 <b>SALDO:</b> {saldo_restante} crd"
-    )
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+        texto = (
+            f"{titulo_sistema('CONSULTA AGV', '🛰️')}\n\n"
+            f"🪪 <b>DNI:</b> <code>{error_html(res.get('dni'))}</code>\n"
+            f"👤 <b>NOMBRE:</b> <code>{error_html(res.get('nombres'))} {error_html(res.get('apellidos'))}</code>\n"
+            f"⚧️ <b>GÉNERO:</b> <code>{error_html(res.get('genero'))}</code>\n"
+            f"🎂 <b>EDAD:</b> <code>{error_html(res.get('edad'))}</code>\n\n"
+            f"💳 <b>SALDO:</b> {saldo_restante} crd"
+        )
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-    if res.get("images"):
-        raw = base64.b64decode(res["images"][0].get("data_uri").split(",")[1])
-        await update.message.reply_photo(photo=BytesIO(raw))
-except Exception as e:
-    await editar_error(mensaje, str(e))
+        if res.get("images"):
+            raw = base64.b64decode(res["images"][0].get("data_uri").split(",")[1])
+            await update.message.reply_photo(photo=BytesIO(raw))
+    except Exception as e:
+        await editar_error(mensaje, str(e))
+
+
 async def den(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
