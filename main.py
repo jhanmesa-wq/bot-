@@ -22,17 +22,17 @@ MessageHandler,
 filters,
 )
 from flask import Flask, request, jsonify
-============================================================
-LOGGING
-============================================================
+#============================================================
+#LOGGING
+#============================================================
 logging.basicConfig(
 format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 level=logging.INFO,
 )
 logger = logging.getLogger("specter_peru")
-============================================================
-CONFIGURACIÓN
-============================================================
+#============================================================
+#CONFIGURACIÓN
+#============================================================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_TOKEN = os.getenv("API_TOKEN")
 ARCHIVO_USUARIOS = os.getenv("ARCHIVO_USUARIOS") or "usuarios.json"
@@ -48,7 +48,7 @@ item.strip()
 for item in (os.getenv("ADMIN_ID") or "").split(",")
 if item.strip()
 }
-Precios actualizados y nuevos comandos agregados
+#Precios actualizados y nuevos comandos agregados
 PRECIOS = {
 "dni": 4,
 "agv": 20,
@@ -69,10 +69,11 @@ PRECIOS = {
 "rqh": 30,
 "denuncias": 30
 }
-============================================================
-FLASK KEEP-ALIVE & WEBHOOK PAGO
-============================================================
-app = Flask(name)
+#============================================================
+#FLASK KEEP-ALIVE & WEBHOOK PAGO
+#============================================================
+
+app = Flask(__name__)
 @app.route('/')
 def home():
 return "🔥 SPECTER PERÚ BOT ACTIVO 24/7"
@@ -121,9 +122,9 @@ def keep_alive():
 t = Thread(target=run_flask)
 t.daemon = True
 t.start()
-============================================================
-ESTILO FUTURISTA CENTRALIZADO
-============================================================
+#============================================================
+#ESTILO FUTURISTA CENTRALIZADO
+#============================================================
 SEPARADOR = "━━━━━━━━━━━━━━━━━━━━━━"
 SEPARADOR_CORTO = "━━━━━━━━━━━━━━━━━━"
 BTN_VOLVER = InlineKeyboardMarkup(
@@ -162,9 +163,9 @@ f"╚═════════════════════╝"
 def error_html(texto: Any) -> str:
 if texto is None: return "-"
 return html.escape(str(texto))
-============================================================
-BASE DE DATOS DE USUARIOS
-============================================================
+#============================================================
+#BASE DE DATOS DE USUARIOS
+#============================================================
 def cargar_usuarios() -> Dict[str, Dict[str, Any]]:
 try:
 if not os.path.exists(ARCHIVO_USUARIOS):
@@ -197,9 +198,9 @@ usuario.setdefault("rol", "PENDIENTE")
 usuario.setdefault("plan", "FREE")
 usuario.setdefault("celular", "")
 return user_id, usuario
-============================================================
-SISTEMA CENTRAL DE CRÉDITOS
-============================================================
+#============================================================
+#SISTEMA CENTRAL DE CRÉDITOS
+#============================================================
 async def validar_creditos(
 user_id: str,
 comando: str,
@@ -255,9 +256,11 @@ reply_markup=BTN_VOLVER,
 )
 return None
 return int(resultado)
-============================================================
-CLIENTE API
-============================================================
+#============================================================
+#CLIENTE API
+#============================================================
+
+
 async def consultar_api_get(url: str, timeout: float = 30.0) -> Dict[str, Any]:
 headers = {
 "Authorization": f"Bearer {API_TOKEN}",
@@ -330,9 +333,9 @@ await session.post(url, json={
 "text": mensaje,
 "parse_mode": "HTML"
 })
-============================================================
-UTILIDADES DE RESPUESTA
-============================================================
+#============================================================
+#UTILIDADES DE RESPUESTA
+#============================================================
 async def responder_error(update: Update, mensaje: str) -> None:
 await update.message.reply_text(
 f"❌ <b>{html.escape(mensaje)}</b>",
@@ -849,9 +852,7 @@ try:
     await estado.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
 except Exception as e:
     await editar_error(estado, str(e))
-============================================================
-NUEVOS COMANDOS IMPLEMENTADOS
-============================================================
+
 async def revtec(update: Update, context: ContextTypes.DEFAULT_TYPE):
 usuarios = cargar_usuarios()
 user_id, usuario = obtener_usuario(update, usuarios)
@@ -996,9 +997,9 @@ try:
         await update.message.reply_document(document=archivo)
 except Exception as e:
     await editar_error(mensaje, str(e))
-============================================================
-COMANDOS GENERALES
-============================================================
+#============================================================
+#COMANDOS GENERALES
+#============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 texto = (
 f"{titulo_sistema('SPECTER PERÚ', '⚜️')}\n\n"
@@ -1085,9 +1086,9 @@ if target_id not in usuarios: return
 usuarios[target_id]["creditos"] = max(0, int(usuarios[target_id].get("creditos", 0)) - cantidad)
 guardar_usuarios(usuarios)
 await update.message.reply_text(f"✅ Quitados {cantidad} a {target_id}")
-============================================================
-MENÚ INTERACTIVO CALLBACKS
-============================================================
+#============================================================
+#MENÚ INTERACTIVO CALLBACKS
+#============================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 query = update.callback_query
 if not query: return
@@ -1146,9 +1147,8 @@ textos = {
 
 if query.data in textos:
     await query.edit_message_text(textos[query.data], parse_mode="HTML", reply_markup=BTN_VOLVER)
-============================================================
-MAIN
-============================================================
+
+
 def main():
 if not BOT_TOKEN: raise RuntimeError("Falta BOT_TOKEN")
 keep_alive()
@@ -1190,5 +1190,5 @@ application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r"^/
 
 logger.info("🚀 SPECTER PERÚ ONLINE")
 application.run_polling(drop_pending_updates=True)
-if name == "main":
-main()
+if __name__ == "__main__":
+    main()
