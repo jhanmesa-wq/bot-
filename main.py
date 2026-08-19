@@ -76,43 +76,43 @@ PRECIOS = {
 app = Flask(__name__)
 @app.route('/')
 def home():
-return "🔥 SPECTER PERÚ BOT ACTIVO 24/7"
+    return "🔥 SPECTER PERÚ BOT ACTIVO 24/7"
 @app.route('/health')
 def health():
-return "OK", 200
+ return "OK", 200
 @app.route("/webhook-pagos/", methods=["POST"])
 def recibir_pago():
-datos = request.get_json()
-if not datos:
-return jsonify({"error": "Sin datos"}), 400
-celular = str(datos.get("numero", "")).strip()
-monto_str = str(datos.get("monto", "0"))
-remitente = datos.get("de", "Desconocido")
+    datos = request.get_json()
+    if not datos:
+        return jsonify({"error": "Sin datos"}), 400
+    celular = str(datos.get("numero", "")).strip()
+    monto_str = str(datos.get("monto", "0"))
+    remitente = datos.get("de", "Desconocido")
 
-try:
-    monto = float(monto_str.replace(",", "."))
-except:
-    return jsonify({"error": "Monto inválido"}), 400
+    try:
+        monto = float(monto_str.replace(",", "."))
+    except:
+        return jsonify({"error": "Monto inválido"}), 400
 
-creditos = int(monto * TASA_CREDITOS)
-usuarios = cargar_usuarios()
-user_id_encontrado = None
+    creditos = int(monto * TASA_CREDITOS)
+    usuarios = cargar_usuarios()
+    user_id_encontrado = None
 
-for user_id, info in usuarios.items():
-    if str(info.get("celular", "")).strip() == celular:
+for user_id, info in usuarios.items(): # pyright: ignore[reportUndefinedVariable]
+    if str(info.get("celular", "")).strip() == celular: # pyright: ignore[reportUndefinedVariable]
         user_id_encontrado = user_id
         break
 
-if user_id_encontrado and creditos > 0:
-    usuarios[user_id_encontrado]["creditos"] = int(usuarios[user_id_encontrado].get("creditos", 0)) + creditos
-    guardar_usuarios(usuarios)
-    # Notificación asíncrona mediante un thread para no bloquear Flask
-    Thread(target=lambda: asyncio.run(notificar_usuario(user_id_encontrado, monto, creditos, remitente))).start()
-    logger.info(f"✅ PAGO — S/{monto} de {remitente} → +{creditos} créditos a {user_id_encontrado}")
-else:
-    logger.warning(f"⚠️ Pago S/{monto} de {remitente} — Usuario NO REGISTRADO: {celular}")
+    if user_id_encontrado and creditos > 0:
+        usuarios[user_id_encontrado]["creditos"] = int(usuarios[user_id_encontrado].get("creditos", 0)) + creditos
+        guardar_usuarios(usuarios)
+        # Notificación asíncrona mediante un thread para no bloquear Flask
+        Thread(target=lambda: asyncio.run(notificar_usuario(user_id_encontrado, monto, creditos, remitente))).start()
+        logger.info(f"✅ PAGO — S/{monto} de {remitente} → +{creditos} créditos a {user_id_encontrado}")
+    else:
+        logger.warning(f"⚠️ Pago S/{monto} de {remitente} — Usuario NO REGISTRADO: {celular}")
 
-return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok"}), 200
 def run_flask():
 port = int(os.environ.get("PORT", 8080))
 app.run(host='0.0.0.0', port=port)
@@ -129,29 +129,29 @@ BTN_VOLVER = InlineKeyboardMarkup(
 [[InlineKeyboardButton("🏠 VOLVER AL MENÚ", callback_data="volver_cmds")]]
 )
 def menu_teclado() -> InlineKeyboardMarkup:
-return InlineKeyboardMarkup(
-[
-[
-InlineKeyboardButton("🪪 RENIEC", callback_data="cmd_reniec"),
-InlineKeyboardButton("🏢 RUC", callback_data="cmd_ruc"),
-],
-[
-InlineKeyboardButton("🚘 VEHÍCULOS", callback_data="cmd_vehiculos"),
-InlineKeyboardButton("📱 TELÉFONO", callback_data="cmd_telefono"),
-],
-[
-InlineKeyboardButton("⚖️ DENUNCIAS", callback_data="cmd_denuncia"),
-InlineKeyboardButton("💰 SUELDOS", callback_data="cmd_sueldo"),
-],
-[
-InlineKeyboardButton("🧬 FACIAL", callback_data="cmd_facial"),
-InlineKeyboardButton("🔍 OTROS", callback_data="cmd_otros"),
-],
-[
-InlineKeyboardButton("💎 COMPRAR", callback_data="cmd_buy"),
-]
-]
-)
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("🪪 RENIEC", callback_data="cmd_reniec"),
+                InlineKeyboardButton("🏢 RUC", callback_data="cmd_ruc"),
+            ],
+            [
+                InlineKeyboardButton("🚘 VEHÍCULOS", callback_data="cmd_vehiculos"),
+                InlineKeyboardButton("📱 TELÉFONO", callback_data="cmd_telefono"),
+            ],
+            [
+                InlineKeyboardButton("⚖️ DENUNCIAS", callback_data="cmd_denuncia"),
+                InlineKeyboardButton("💰 SUELDOS", callback_data="cmd_sueldo"),
+            ],
+            [
+                InlineKeyboardButton("🧬 FACIAL", callback_data="cmd_facial"),
+                InlineKeyboardButton("🔍 OTROS", callback_data="cmd_otros"),
+            ],
+            [
+                InlineKeyboardButton("💎 COMPRAR", callback_data="cmd_buy"),
+            ],
+        ]
+    )
 def titulo_sistema(nombre: str, icono: str = "⚡") -> str:
 return (
 f"╔═════════════════════╗\n"
