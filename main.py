@@ -97,12 +97,12 @@ def recibir_pago():
     creditos = int(monto * TASA_CREDITOS)
     usuarios = cargar_usuarios()
     user_id_encontrado = None
+    for user_id, info in usuarios.items():  # pyright: ignore[reportUndefinedVariable]
+        if str(info.get("celular", "")).strip() == celular:  # pyright: ignore[reportUndefinedVariable]
+            user_id_encontrado = user_id
+            break
 
-for user_id, info in usuarios.items(): # pyright: ignore[reportUndefinedVariable]
-    if str(info.get("celular", "")).strip() == celular: # pyright: ignore[reportUndefinedVariable]
-        user_id_encontrado = user_id
-        break
-
+    # Si encontramos usuario y hay créditos, actualizar y notificar
     if user_id_encontrado and creditos > 0:
         usuarios[user_id_encontrado]["creditos"] = int(usuarios[user_id_encontrado].get("creditos", 0)) + creditos
         guardar_usuarios(usuarios)
@@ -114,12 +114,12 @@ for user_id, info in usuarios.items(): # pyright: ignore[reportUndefinedVariable
 
     return jsonify({"status": "ok"}), 200
 def run_flask():
-port = int(os.environ.get("PORT", 8080))
-app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 def keep_alive():
-t = Thread(target=run_flask)
-t.daemon = True
-t.start()
+    t = Thread(target=run_flask)
+    t.daemon = True
+    t.start()
 #============================================================
 #ESTILO FUTURISTA CENTRALIZADO
 #============================================================
@@ -153,49 +153,56 @@ def menu_teclado() -> InlineKeyboardMarkup:
         ]
     )
 def titulo_sistema(nombre: str, icono: str = "⚡") -> str:
-return (
-f"╔═════════════════════╗\n"
-f"{icono} <b>{html.escape(nombre.upper())}</b>\n"
-f"╚═════════════════════╝"
-)
+    return (
+        f"╔═════════════════════╗\n"
+        f"{icono} <b>{html.escape(nombre.upper())}</b>\n"
+        f"╚═════════════════════╝"
+    )
 def error_html(texto: Any) -> str:
-if texto is None: return "-"
-return html.escape(str(texto))
+    if texto is None:
+        return "-"
+    return html.escape(str(texto))
 #============================================================
 #BASE DE DATOS DE USUARIOS
 #============================================================
 def cargar_usuarios() -> Dict[str, Dict[str, Any]]:
-try:
-if not os.path.exists(ARCHIVO_USUARIOS):
-return {}
-with open(ARCHIVO_USUARIOS, "r", encoding="utf-8") as archivo:
-data = json.load(archivo)
-return data if isinstance(data, dict) else {}
-except (OSError, json.JSONDecodeError, TypeError) as exc:
-logger.warning("No se pudo cargar usuarios: %s", exc)
-return {}
+    try:
+        if not os.path.exists(ARCHIVO_USUARIOS):
+            return {}
+        with open(ARCHIVO_USUARIOS, "r", encoding="utf-8") as archivo:
+            data = json.load(archivo)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError, TypeError) as exc:
+        logger.warning("No se pudo cargar usuarios: %s", exc)
+        return {}
+
+
 def guardar_usuarios(data: Dict[str, Dict[str, Any]]) -> None:
-directorio = os.path.dirname(os.path.abspath(ARCHIVO_USUARIOS))
-if directorio:
-os.makedirs(directorio, exist_ok=True)
-temporal = f"{ARCHIVO_USUARIOS}.tmp"
-with open(temporal, "w", encoding="utf-8") as archivo:
-json.dump(data, archivo, indent=4, ensure_ascii=False)
-os.replace(temporal, ARCHIVO_USUARIOS)
+    directorio = os.path.dirname(os.path.abspath(ARCHIVO_USUARIOS))
+    if directorio:
+        os.makedirs(directorio, exist_ok=True)
+    temporal = f"{ARCHIVO_USUARIOS}.tmp"
+    with open(temporal, "w", encoding="utf-8") as archivo:
+        json.dump(data, archivo, indent=4, ensure_ascii=False)
+    os.replace(temporal, ARCHIVO_USUARIOS)
+
+
 def get_fecha() -> str:
-return datetime.datetime.now().strftime("%d/%m/%Y - %I:%M:%S %p")
+    return datetime.datetime.now().strftime("%d/%m/%Y - %I:%M:%S %p")
+
+
 def obtener_usuario(update: Update, usuarios: Dict[str, Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
-user = update.effective_user
-user_id = str(user.id)
-usuario = usuarios.setdefault(user_id, {})
-usuario.setdefault("creditos", 0)
-usuario.setdefault("consultas", 0)
-usuario.setdefault("nombre", user.first_name or "Usuario")
-usuario.setdefault("username", user.username or "")
-usuario.setdefault("rol", "PENDIENTE")
-usuario.setdefault("plan", "FREE")
-usuario.setdefault("celular", "")
-return user_id, usuario
+    user = update.effective_user
+    user_id = str(user.id) if user else "desconocido"
+    usuario = usuarios.setdefault(user_id, {})
+    usuario.setdefault("creditos", 0)
+    usuario.setdefault("consultas", 0)
+    usuario.setdefault("nombre", user.first_name if user and user.first_name else "Usuario")
+    usuario.setdefault("username", user.username if user and user.username else "")
+    usuario.setdefault("rol", "PENDIENTE")
+    usuario.setdefault("plan", "FREE")
+    usuario.setdefault("celular", "")
+    return user_id, usuario
 #============================================================
 #SISTEMA CENTRAL DE CRÉDITOS
 #============================================================
@@ -204,144 +211,151 @@ user_id: str,
 comando: str,
 usuarios: Dict[str, Dict[str, Any]],
 ) -> Tuple[bool, Any]:
-costo = PRECIOS.get(comando)
-if costo is None:
-return False, f"El servicio <code>/{html.escape(comando)}</code> no tiene precio configurado."
-saldo = int(usuarios.get(user_id, {}).get("creditos", 0) or 0)
-if saldo < costo:
-    return (
-        False,
-        "╔═════════════════════╗\n"
-        "💳 <b>CRÉDITOS INSUFICIENTES</b>\n"
-        "╚═════════════════════╝\n\n"
-        f"❌ Saldo actual: <code>{saldo}</code> créditos\n"
-        f"💎 Costo: <code>{costo}</code> créditos\n"
-        f"📉 Faltan: <code>{costo - saldo}</code> créditos\n\n"
-        "🛒 Usa <code>/buy</code> para recargar."
-    )
-return True, costo
+    costo = PRECIOS.get(comando)
+    if costo is None:
+        return False, f"El servicio <code>/{html.escape(comando)}</code> no tiene precio configurado."
+    saldo = int(usuarios.get(user_id, {}).get("creditos", 0) or 0)
+    if saldo < costo:
+        return (
+            False,
+            "╔═════════════════════╗\n"
+            "💳 <b>CRÉDITOS INSUFICIENTES</b>\n"
+            "╚═════════════════════╝\n\n"
+            f"❌ Saldo actual: <code>{saldo}</code> créditos\n"
+            f"💎 Costo: <code>{costo}</code> créditos\n"
+            f"📉 Faltan: <code>{costo - saldo}</code> créditos\n\n"
+            "🛒 Usa <code>/buy</code> para recargar."
+        )
+    return True, costo
 async def cobrar_creditos(
 user_id: str,
 comando: str,
 usuarios: Dict[str, Dict[str, Any]],
 ) -> int:
-costo = int(PRECIOS[comando])
-usuario = usuarios[user_id]
-saldo = int(usuario.get("creditos", 0) or 0)
-if saldo < costo:
-    raise ValueError("Saldo insuficiente al intentar cobrar la consulta.")
-
-usuario["creditos"] = saldo - costo
-usuario["consultas"] = int(usuario.get("consultas", 0) or 0) + 1
-guardar_usuarios(usuarios)
-return usuario["creditos"]
+    costo = int(PRECIOS[comando])
+    usuario = usuarios[user_id]
+    saldo = int(usuario.get("creditos", 0) or 0)
+    if saldo < costo:
+        raise ValueError("Saldo insuficiente al intentar cobrar la consulta.")
+    usuario["creditos"] = saldo - costo
+    usuario["consultas"] = int(usuario.get("consultas", 0) or 0) + 1
+    guardar_usuarios(usuarios)
+    return usuario["creditos"]
 async def preparar_consulta(
 update: Update,
 comando: str,
 usuarios: Dict[str, Dict[str, Any]],
 user_id: str,
 ) -> Optional[int]:
-ok, resultado = await validar_creditos(user_id, comando, usuarios)
-if not ok:
-await update.message.reply_text(
-resultado,
-parse_mode="HTML",
-reply_markup=BTN_VOLVER,
-)
-return None
-return int(resultado)
+    ok, resultado = await validar_creditos(user_id, comando, usuarios)
+    if not ok:
+        await update.message.reply_text(
+            resultado,
+            parse_mode="HTML",
+            reply_markup=BTN_VOLVER,
+        )
+        return None
+    return int(resultado)
 #============================================================
 #CLIENTE API
 #============================================================
 
 
 async def consultar_api_get(url: str, timeout: float = 30.0) -> Dict[str, Any]:
-headers = {
-"Authorization": f"Bearer {API_TOKEN}",
-"Accept": "application/json",
-"Content-Type": "application/json",
-}
-try:
-async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-response = await client.get(url, headers=headers)
-if response.status_code == 401:
-return {"error": "API_TOKEN inválido o expirado."}
-response.raise_for_status()
-try:
-data = response.json()
-except ValueError:
-return {"error": "La API devolvió una respuesta que no es JSON."}
-return data if isinstance(data, dict) else {"error": "Respuesta JSON inválida."}
-except httpx.TimeoutException:
-return {"error": "La API tardó demasiado en responder."}
-except httpx.HTTPStatusError as exc:
-return {"error": f"HTTP {exc.response.status_code}"}
-except httpx.RequestError as exc:
-return {"error": f"Error de conexión: {exc}"}
-except Exception as exc:
-logger.exception("Error API GET")
-return {"error": str(exc)}
+    headers = {
+        "Authorization": f"Bearer {API_TOKEN}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            response = await client.get(url, headers=headers)
+            if response.status_code == 401:
+                return {"error": "API_TOKEN inválido o expirado."}
+            response.raise_for_status()
+            try:
+                data = response.json()
+            except ValueError:
+                return {"error": "La API devolvió una respuesta que no es JSON."}
+            return data if isinstance(data, dict) else {"error": "Respuesta JSON inválida."}
+    except httpx.TimeoutException:
+        return {"error": "La API tardó demasiado en responder."}
+    except httpx.HTTPStatusError as exc:
+        return {"error": f"HTTP {exc.response.status_code}"}
+    except httpx.RequestError as exc:
+        return {"error": f"Error de conexión: {exc}"}
+    except Exception as exc:
+        logger.exception("Error API GET")
+        return {"error": str(exc)}
+
+
 async def consultar_api_post_facial(imagen: bytes) -> Dict[str, Any]:
-headers = {
-"Authorization": f"Bearer {API_TOKEN}",
-"Accept": "application/json",
-}
-files = {
-"image_facial": ("imagen.jpg", imagen, "image/jpeg")
-}
-try:
-async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
-response = await client.post(
-f"{BASE_URL}/api/v1/consultas/fd/facial/top",
-headers=headers,
-files=files,
-)
-if response.status_code != 200:
-return {"error": f"API HTTP {response.status_code}: {response.text}"}
-try:
-data = response.json()
-except ValueError:
-return {"error": "La API facial devolvió una respuesta inválida."}
-return data if isinstance(data, dict) else {"error": "Respuesta facial inválida."}
-except httpx.TimeoutException:
-return {"error": "La API facial tardó demasiado en responder."}
-except httpx.RequestError as exc:
-return {"error": f"Error de conexión: {exc}"}
-except Exception as exc:
-logger.exception("Error API facial")
-return {"error": str(exc)}
+    headers = {
+        "Authorization": f"Bearer {API_TOKEN}",
+        "Accept": "application/json",
+    }
+    files = {
+        "image_facial": ("imagen.jpg", imagen, "image/jpeg")
+    }
+    try:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+            response = await client.post(
+                f"{BASE_URL}/api/v1/consultas/fd/facial/top",
+                headers=headers,
+                files=files,
+            )
+            if response.status_code != 200:
+                return {"error": f"API HTTP {response.status_code}: {response.text}"}
+            try:
+                data = response.json()
+            except ValueError:
+                return {"error": "La API facial devolvió una respuesta inválida."}
+            return data if isinstance(data, dict) else {"error": "Respuesta facial inválida."}
+    except httpx.TimeoutException:
+        return {"error": "La API facial tardó demasiado en responder."}
+    except httpx.RequestError as exc:
+        return {"error": f"Error de conexión: {exc}"}
+    except Exception as exc:
+        logger.exception("Error API facial")
+        return {"error": str(exc)}
+
+
 async def notificar_usuario(user_id, monto, creditos, remitente):
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-mensaje = (
-"✅ <b>PAGO DETECTADO</b>\n"
-"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
-f"• 💰 Recibido: <b>S/ {monto:.2f}</b>\n"
-f"• 🎁 +<b>{creditos}</b> Créditos agregados ✅\n"
-f"• 👤 De: {remitente}\n"
-"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
-"⚡ ¡Ya puedes usar tus créditos!"
-)
-async with aiohttp.ClientSession() as session:
-await session.post(url, json={
-"chat_id": user_id,
-"text": mensaje,
-"parse_mode": "HTML"
-})
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    mensaje = (
+        "✅ <b>PAGO DETECTADO</b>\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        f"• 💰 Recibido: <b>S/ {monto:.2f}</b>\n"
+        f"• 🎁 +<b>{creditos}</b> Créditos agregados ✅\n"
+        f"• 👤 De: {remitente}\n"
+        "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+        "⚡ ¡Ya puedes usar tus créditos!"
+    )
+    async with aiohttp.ClientSession() as session:
+        await session.post(
+            url,
+            json={
+                "chat_id": user_id,
+                "text": mensaje,
+                "parse_mode": "HTML",
+            },
+        )
 #============================================================
 #UTILIDADES DE RESPUESTA
 #============================================================
 async def responder_error(update: Update, mensaje: str) -> None:
-await update.message.reply_text(
-f"❌ <b>{html.escape(mensaje)}</b>",
-parse_mode="HTML",
-reply_markup=BTN_VOLVER,
-)
+    await update.message.reply_text(
+        f"❌ <b>{html.escape(mensaje)}</b>",
+        parse_mode="HTML",
+        reply_markup=BTN_VOLVER,
+    )
+
 async def editar_error(mensaje, mensaje_error: str) -> None:
-await mensaje.edit_text(
-f"❌ <b>{html.escape(mensaje_error)}</b>",
-parse_mode="HTML",
-reply_markup=BTN_VOLVER,
-)
+    await mensaje.edit_text(
+        f"❌ <b>{html.escape(mensaje_error)}</b>",
+        parse_mode="HTML",
+        reply_markup=BTN_VOLVER,
+    )
 ============================================================
 COMANDOS DE CONSULTA IMPLEMENTADOS
 ============================================================
@@ -881,36 +895,36 @@ try:
 except Exception as e:
     await editar_error(mensaje, str(e))
 async def dnivel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-usuarios = cargar_usuarios()
-user_id, usuario = obtener_usuario(update, usuarios)
-if len(context.args) != 1: return await responder_error(update, "Uso: /dnivel DNI")
-dni_num = context.args[0].strip()
-costo = await preparar_consulta(update, "dnivel", usuarios, user_id)
-if costo is None: return
+    usuarios = cargar_usuarios()
+    user_id, usuario = obtener_usuario(update, usuarios)
+    if len(context.args) != 1: return await responder_error(update, "Uso: /dnivel DNI")
+    dni_num = context.args[0].strip()
+    costo = await preparar_consulta(update, "dnivel", usuarios, user_id)
+    if costo is None: return
 
-mensaje = await update.message.reply_text("🔎 Consultando DNI-Nivel...", parse_mode="HTML")
+    mensaje = await update.message.reply_text("🔎 Consultando DNI-Nivel...", parse_mode="HTML")
 
-try:
-    data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dnivel/{dni_num}")
-    if not data.get("success"): return await editar_error(mensaje, "No encontrado.")
+    try:
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dnivel/{dni_num}")
+        if not data.get("success"): return await editar_error(mensaje, "No encontrado.")
 
-    res = data.get("data", {})
-    saldo_restante = await cobrar_creditos(user_id, "dnivel", usuarios)
+        res = data.get("data", {})
+        saldo_restante = await cobrar_creditos(user_id, "dnivel", usuarios)
 
-    texto = (
-        f"{titulo_sistema('DNI NIVEL', '📊')}\n\n"
-        f"🪪 <b>DNI:</b> <code>{error_html(res.get('dni'))}</code>\n"
-        f"👤 <b>NOMBRE:</b> <code>{error_html(res.get('nombres'))} {error_html(res.get('apellidos'))}</code>\n"
-        f"🎂 <b>EDAD:</b> <code>{error_html(res.get('edad'))}</code>\n"
-        f"⚧️ <b>GÉNERO:</b> <code>{error_html(res.get('genero'))}</code>\n\n"
-        f"💳 <b>SALDO:</b> {saldo_restante} crd"
-    )
-    await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
+        texto = (
+            f"{titulo_sistema('DNI NIVEL', '📊')}\n\n"
+            f"🪪 <b>DNI:</b> <code>{error_html(res.get('dni'))}</code>\n"
+            f"👤 <b>NOMBRE:</b> <code>{error_html(res.get('nombres'))} {error_html(res.get('apellidos'))}</code>\n"
+            f"🎂 <b>EDAD:</b> <code>{error_html(res.get('edad'))}</code>\n"
+            f"⚧️ <b>GÉNERO:</b> <code>{error_html(res.get('genero'))}</code>\n\n"
+            f"💳 <b>SALDO:</b> {saldo_restante} crd"
+        )
+        await mensaje.edit_text(texto, parse_mode="HTML", reply_markup=BTN_VOLVER)
 
-    if res.get("images"):
-        for img in res["images"]:
-            raw = base64.b64decode(img.get("data_uri").split(",")[1])
-            await update.message.reply_photo(photo=BytesIO(raw))
+        if res.get("images"):
+            for img in res["images"]:
+                raw = base64.b64decode(img.get("data_uri").split(",")[1])
+                await update.message.reply_photo(photo=BytesIO(raw))
 except Exception as e:
     await editar_error(mensaje, str(e))
 async def rqh(update: Update, context: ContextTypes.DEFAULT_TYPE):
