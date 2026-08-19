@@ -1005,8 +1005,10 @@ async def dnivel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for img in res["images"]:
                 raw = base64.b64decode(img.get("data_uri").split(",")[1])
                 await update.message.reply_photo(photo=BytesIO(raw))
-except Exception as e:
-    await editar_error(mensaje, str(e))
+    except Exception as e:
+        await editar_error(mensaje, str(e))
+
+
 async def rqh(update: Update, context: ContextTypes.DEFAULT_TYPE):
     usuarios = cargar_usuarios()
     user_id, usuario = obtener_usuario(update, usuarios)
