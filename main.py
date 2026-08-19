@@ -518,7 +518,7 @@ async def dnit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = await update.message.reply_text("🔎 Consultando DNI Completo (T)...", parse_mode="HTML")
 
     try:
-        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni_num}")
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/dnit/{dni}")
         if not data.get("success"):
             return await editar_error(mensaje, data.get("message", "Error"))
 
@@ -640,7 +640,7 @@ async def agv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje = await update.message.reply_text("🔎 Consultando AGV...", parse_mode="HTML")
 
     try:
-        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/agv/{dni_num}")
+        data = await consultar_api_get(f"{BASE_URL}/api/v1/consultas/fd/agv/{dni}")
         if not data.get("success"):
             return await editar_error(mensaje, "No se encontró data.")
 
